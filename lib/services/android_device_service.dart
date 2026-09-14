@@ -180,9 +180,13 @@ class AndroidDeviceService implements DeviceService {
       return AndroidDeviceInfo(
         androidVersion: version,
         apiLevel: apiLevel,
-        ramAvailableBytes: memory?.availableBytes,
+        ramUsedBytes: memory == null
+            ? null
+            : memory.totalBytes - memory.availableBytes,
         ramTotalBytes: memory?.totalBytes,
-        storageAvailableBytes: storage?.availableBytes,
+        storageUsedBytes: storage == null
+            ? null
+            : storage.totalBytes - storage.availableBytes,
         storageTotalBytes: storage?.totalBytes,
       );
     } catch (_) {

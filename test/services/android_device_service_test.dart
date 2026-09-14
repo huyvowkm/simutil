@@ -236,9 +236,9 @@ void main() {
         expect(info?.androidVersion, '16');
         expect(info?.apiLevel, 36);
         expect(info?.ramTotalBytes, 8388608 * 1024);
-        expect(info?.ramAvailableBytes, 4194304 * 1024);
+        expect(info?.ramUsedBytes, 4194304 * 1024);
         expect(info?.storageTotalBytes, 10485760 * 1024);
-        expect(info?.storageAvailableBytes, 8388608 * 1024);
+        expect(info?.storageUsedBytes, 2097152 * 1024);
         expect(
           exec.calls,
           everyElement(
