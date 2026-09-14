@@ -680,71 +680,16 @@ Modify:
 
 `lib/simutil_app.dart`
 
-Add a global shortcut:
+Render Device Controls inline in the right column and use Tab to focus it:
 
 ```text
-c = Controls
+Tab = Controls focus
 ```
 
-Recommended location in `_handleGlobalKey`:
-
-```dart
-case LogicalKey.keyC:
-  _showDeviceControls();
-  return true;
-```
-
-Implement:
-
-```dart
-Future<void> _showDeviceControls() async {
-  final device = _currentSelectedDevice;
-
-  if (device == null) {
-    await showErrorDialog(...);
-    return;
-  }
-
-  if (!device.isRunning) {
-    await showErrorDialog(
-      ...,
-      message: 'Launch the simulator/emulator first.',
-    );
-    return;
-  }
-
-  final service = switch (device.os) {
-    DeviceOs.android => _di.androidDeviceControlService,
-    DeviceOs.ios => _di.iosDeviceControlService,
-  };
-
-  await showDeviceControlsDialog(
-    context: context,
-    device: device,
-    service: service,
-  );
-
-  setState(() {
-    _statusMessage = _buildIdleStatusMessage();
-  });
-}
-```
-
-Update status hints.
-
-For running Android emulator:
-
-```text
-Controls: c
-```
-
-For running iOS simulator:
-
-```text
-Controls: c
-```
-
-Do not show `Controls: c` when the selected device does not support controls.
+Add `controls` as a focus scope only when the selected running device supports
+controls. The right column is a `Column`: `DeviceDetailPanel` at flex 1 and
+the inline Controls component at flex 2. Hide the interactive controls when
+the selected device is unsupported.
 
 ---
 
@@ -1190,7 +1135,7 @@ lib/simutil_app.dart
 Add:
 
 ```text
-c = Controls
+Tab = Controls focus
 ```
 
 Commit:
@@ -1215,7 +1160,7 @@ Update `README.md` with a small section:
 ```markdown
 ### Device Controls
 
-For a running emulator/simulator, press `c` to open Device Controls.
+For a running emulator/simulator, press `Tab` to focus inline Device Controls.
 
 Supported controls include:
 
@@ -1480,12 +1425,12 @@ Keep the first PR focused.
 
 v1 is done when all of these pass:
 
-- [ ] User can select a running Android emulator and press `c`
+- [ ] User can select a running Android emulator and focus Controls with `Tab`
 - [ ] User can switch Android Light/Dark mode
 - [ ] User can change Android font size
 - [ ] User can change the selected Android device time zone
 - [ ] Commands always target the selected Android serial
-- [ ] User can select a running iOS Simulator and press `c`
+- [ ] User can select a running iOS Simulator and focus Controls with `Tab`
 - [ ] User can switch iOS Light/Dark appearance
 - [ ] User can change iOS Dynamic Type size
 - [ ] Commands always target the selected Simulator UDID
@@ -1496,5 +1441,5 @@ v1 is done when all of these pass:
 - [ ] `dart analyze` passes
 - [ ] `dart test` passes
 - [ ] `dart format .` produces no additional changes
-- [ ] README includes the Device Controls shortcut
+- [ ] README documents the inline Device Controls panel
 - [ ] `docs/device-controls.md` is committed

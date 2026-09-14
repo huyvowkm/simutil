@@ -47,10 +47,11 @@ Simutil is written with [Nocterm](https://nocterm.dev/), a terminal UI framework
 
 ## Device Controls
 
-SimUtil có thêm mobile emulator/simulator control center. Tính năng giữ nguyên
-màn hình chọn device hiện có và thêm shortcut `c` để mở **Device Controls** cho
-device đang chọn. Controls chỉ hoạt động với emulator/simulator hoặc Android
-device đang chạy; không tự boot device và không áp dụng cho iOS physical device.
+SimUtil có thêm mobile emulator/simulator control center. Màn hình phải luôn
+hiển thị **Details** ở 1/3 phía trên và **Controls** ở 2/3 phía dưới cho device
+đang chọn. Dùng `Tab` để chuyển focus sang Controls; không cần mở dialog bằng
+shortcut. Controls chỉ hoạt động với emulator/simulator hoặc Android device
+đang chạy; không tự boot device và không áp dụng cho iOS physical device.
 
 ### Thiết lập giao diện để kiểm thử
 
@@ -65,12 +66,12 @@ device đang chạy; không tự boot device và không áp dụng cho iOS physi
 Giao diện dự kiến vẫn hoàn toàn điều khiển bằng bàn phím:
 
 ```text
-┌ Device Controls: Pixel 9 ──────────────────┐
+┌ Controls: Pixel 9 ─────────────────────────┐
 │ Appearance                          Dark    │
 │ Text Size                       Extra Large │
 │ Time Zone             Asia/Ho_Chi_Minh     │
 │                                            │
-│ ↑/↓ Navigate  Enter Change  Esc Close      │
+│ ↑/↓ Navigate  ←/→ Choose  Enter Apply      │
 └────────────────────────────────────────────┘
 ```
 
@@ -109,7 +110,7 @@ chuyển chúng thành `font_scale`, còn iOS chuyển thành `simctl content_si
 2. `DeviceControlService`, Android/iOS implementations và `CommandExec` hiện
    có để chạy commands ngoài UI isolate.
 3. Service registration tại `ServiceLocator`; widget không tự khởi tạo service.
-4. `DeviceControlsDialog` và shortcut `c` tại `SimutilApp`.
+4. Inline `DeviceControlsPanel` tại `SimutilApp`, focus bằng `Tab`.
 5. Unit tests kiểm tra command generation, failure handling và target khi có
    nhiều device cùng chạy.
 

@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:simutil/models/adb_connect_result.dart';
+import 'package:simutil/models/android_device_info.dart';
 import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/device_state.dart';
@@ -163,6 +164,75 @@ class AndroidDeviceService implements DeviceService {
     final launchArgs = ['@$deviceId', ...additionalArgs];
     await _exec.run(emulatorPath, arguments: launchArgs);
   }
+
+  Future<AndroidDeviceInfo?> getDeviceInfo(String deviceId) async {
+    try {
+      final results = await Future.wait([
+        _adb(deviceId, ['shell', 'getprop', 'ro.build.version.release']),
+        _adb(deviceId, ['shell', 'getprop', 'ro.build.version.sdk']),
+        _adb(deviceId, ['shell', 'cat', '/proc/meminfo']),
+        _adb(deviceId, ['shell', 'df', '-k', '/data']),
+      ]);
+      final version = _value(results[0]);
+      final apiLevel = int.tryParse(_value(results[1]) ?? '');
+      final memory = parseMemoryInfo(results[2].stdout);
+      final storage = parseStorageInfo(results[3].stdout);
+      return AndroidDeviceInfo(
+        androidVersion: version,
+        apiLevel: apiLevel,
+        ramAvailableBytes: memory?.availableBytes,
+        ramTotalBytes: memory?.totalBytes,
+        storageAvailableBytes: storage?.availableBytes,
+        storageTotalBytes: storage?.totalBytes,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<CommandResult> _adb(String deviceId, List<String> arguments) =>
+      _exec.run(adbPath, arguments: ['-s', deviceId, ...arguments]);
+
+  static AndroidMemoryInfo? parseMemoryInfo(String output) {
+    final total = _memoryValue(output, 'MemTotal');
+    final available = _memoryValue(output, 'MemAvailable');
+    if (total == null || available == null) return null;
+    return AndroidMemoryInfo(
+      totalBytes: total * 1024,
+      availableBytes: available * 1024,
+    );
+  }
+
+  static AndroidStorageInfo? parseStorageInfo(String output) {
+    final rows = output
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    if (rows.length < 2) return null;
+    final columns = rows.last.split(RegExp(r'\s+'));
+    if (columns.length < 4) return null;
+    final totalKiB = int.tryParse(columns[1]);
+    final availableKiB = int.tryParse(columns[3]);
+    if (totalKiB == null || availableKiB == null) return null;
+    return AndroidStorageInfo(
+      totalBytes: totalKiB * 1024,
+      availableBytes: availableKiB * 1024,
+    );
+  }
+
+  static int? _memoryValue(String output, String key) {
+    final match = RegExp(
+      '^$key:\\s+(\\d+)\\s+kB',
+      multiLine: true,
+    ).firstMatch(output);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
+  String? _value(CommandResult result) =>
+      result.success && result.stdout.trim().isNotEmpty
+      ? result.stdout.trim()
+      : null;
 
   Future<AdbConnectResult> connectDevice(String host) async {
     try {
