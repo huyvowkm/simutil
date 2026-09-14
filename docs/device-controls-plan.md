@@ -379,7 +379,7 @@ Presets make behavior predictable and testable.
 Set a named IANA time zone for the selected Android device:
 
 ```bash
-adb -s <serial> shell cmd alarm set-time-zone Asia/Ho_Chi_Minh
+adb -s <serial> shell cmd alarm set-timezone Asia/Ho_Chi_Minh
 ```
 
 Read the current value:
