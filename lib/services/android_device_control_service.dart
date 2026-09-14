@@ -28,7 +28,7 @@ class AndroidDeviceControlService implements DeviceControlService {
       device.os == DeviceOs.android && device.isRunning;
 
   @override
-  bool get supportsLocale => true;
+  bool get supportsTimeZone => true;
 
   @override
   Future<DeviceControlState> getState(Device device) async {
@@ -36,11 +36,11 @@ class AndroidDeviceControlService implements DeviceControlService {
 
     final appearance = await _readAppearance(device);
     final textSize = await _readTextSize(device);
-    final locale = await _readLocale(device);
+    final timeZone = await _readTimeZone(device);
     return DeviceControlState(
       appearance: appearance,
       textSize: textSize,
-      locale: locale,
+      timeZone: timeZone,
     );
   }
 
@@ -68,11 +68,14 @@ class AndroidDeviceControlService implements DeviceControlService {
       ], successMessage: 'Text size set to ${size.label}');
 
   @override
-  Future<DeviceControlResult> setLocale(Device device, String locale) => _run(
-    device,
-    ['shell', 'setprop', 'persist.sys.locale', locale],
-    successMessage: 'Locale set to $locale. Restart may be required.',
-  );
+  Future<DeviceControlResult> setTimeZone(Device device, String timeZone) =>
+      _run(device, [
+        'shell',
+        'cmd',
+        'alarm',
+        'set-time-zone',
+        timeZone,
+      ], successMessage: 'Time zone set to $timeZone.');
 
   Future<DeviceAppearance?> _readAppearance(Device device) async {
     final result = await _tryAdb(device, ['shell', 'cmd', 'uimode', 'night']);
@@ -99,14 +102,14 @@ class AndroidDeviceControlService implements DeviceControlService {
         .firstOrNull;
   }
 
-  Future<String?> _readLocale(Device device) async {
+  Future<String?> _readTimeZone(Device device) async {
     final result = await _tryAdb(device, [
       'shell',
       'getprop',
-      'persist.sys.locale',
+      'persist.sys.timezone',
     ]);
-    final locale = result?.stdout.trim();
-    return locale == null || locale.isEmpty ? null : locale;
+    final timeZone = result?.stdout.trim();
+    return timeZone == null || timeZone.isEmpty ? null : timeZone;
   }
 
   Future<DeviceControlResult> _run(

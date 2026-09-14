@@ -58,7 +58,7 @@ device đang chạy; không tự boot device và không áp dụng cho iOS physi
 | --- | --- | --- | --- | --- |
 | Light / Dark appearance | Có | Có nếu ADB hỗ trợ | Có | Không hỗ trợ |
 | Font / text size | Có | Có nếu ADB hỗ trợ | Có (Dynamic Type) | Không hỗ trợ |
-| System language / locale | Có, phụ thuộc Android version | Có nếu ADB hỗ trợ | Để phase App Controls | Không hỗ trợ |
+| System time zone | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
 | Đọc giá trị hiện tại | Khi command hỗ trợ | Khi command hỗ trợ | Khi `simctl` hỗ trợ | Không hỗ trợ |
 | Báo lỗi command rõ ràng | Có | Có | Có | Không hỗ trợ |
 
@@ -68,7 +68,7 @@ Giao diện dự kiến vẫn hoàn toàn điều khiển bằng bàn phím:
 ┌ Device Controls: Pixel 9 ──────────────────┐
 │ Appearance                          Dark    │
 │ Text Size                       Extra Large │
-│ Language                            ja-JP   │
+│ Time Zone             Asia/Ho_Chi_Minh     │
 │                                            │
 │ ↑/↓ Navigate  Enter Change  Esc Close      │
 └────────────────────────────────────────────┘
@@ -87,8 +87,8 @@ chuyển chúng thành `font_scale`, còn iOS chuyển thành `simctl content_si
   quản lý. Device Controls là lớp service riêng, không làm phình `DeviceService`.
 - Mọi command chạy qua `CommandExec` và `IsolateRunner`; UI Nocterm không bị
   block và service được unit-test bằng fake command executor.
-- Android locale thay đổi có thể cần restart tùy API level. iOS system locale
-  không thuộc v1; phase sau sẽ hỗ trợ app-specific locale khi có bundle ID.
+- Android time zone dùng danh sách timezone IANA phổ biến và chỉ thay đổi
+  device đang chọn. iOS system time zone chưa thuộc v1.
 - Nếu Xcode/runtime hoặc Android version không hỗ trợ một command, app phải
   hiển thị lỗi ngắn gọn thay vì crash.
 

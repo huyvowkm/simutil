@@ -8,7 +8,7 @@ Initial controls:
 
 - Appearance: Light / Dark
 - Font / text size
-- Language / locale
+- Time zone
 - Read current values where practical
 - Clear error handling when a control is unsupported
 - Keyboard-driven Nocterm UI consistent with existing simutil dialogs
@@ -166,12 +166,12 @@ class DeviceControlState {
   const DeviceControlState({
     this.appearance,
     this.textSize,
-    this.locale,
+    this.timeZone,
   });
 
   final DeviceAppearance? appearance;
   final DeviceTextSize? textSize;
-  final String? locale;
+  final String? timeZone;
 }
 ```
 
@@ -207,9 +207,9 @@ abstract class DeviceControlService {
     DeviceTextSize size,
   );
 
-  Future<bool> setLocale(
+  Future<bool> setTimeZone(
     Device device,
-    String locale,
+    String timeZone,
   );
 }
 ```
@@ -374,49 +374,23 @@ Presets make behavior predictable and testable.
 
 ---
 
-## 4.5 Android language
+## 4.5 Android time zone
 
-This is the most sensitive of the three controls.
-
-For the first implementation, distinguish:
-
-1. Device locale
-2. Per-app locale
-
-### Device locale
-
-Possible emulator command:
+Set a named IANA time zone for the selected Android device:
 
 ```bash
-adb -s <serial> shell setprop persist.sys.locale ja-JP
+adb -s <serial> shell cmd alarm set-time-zone Asia/Ho_Chi_Minh
 ```
 
-Changing device locale can require framework/app restart depending on Android version.
-
-Because behavior differs between Android versions, implement this behind:
-
-```dart
-Future<DeviceControlResult> setLocale(...)
-```
-
-and show a status message such as:
-
-```text
-Locale changed. Restart may be required.
-```
-
-### Better follow-up: per-app locale
-
-If simutil later knows a selected package ID:
+Read the current value:
 
 ```bash
-adb -s <serial> shell cmd locale set-app-locales \
-  com.example.app --locales ja-JP
+adb -s <serial> shell getprop persist.sys.timezone
 ```
 
-This should be a separate future feature because the current device selection model is not the same as app selection.
-
-For v1, support system/emulator locale only and document the limitation.
+The first UI offers a short curated list: `UTC`, `America/Los_Angeles`,
+`Europe/London`, `Asia/Ho_Chi_Minh`, and `Asia/Tokyo`. Every command must still
+target the selected serial.
 
 ---
 
@@ -559,65 +533,11 @@ The accepted vocabulary can vary with Xcode/CoreSimulator versions.
 
 ---
 
-# 6. iOS language / locale
+# 6. iOS time zone
 
-Do not use private Simulator plist manipulation as the primary v1 implementation.
-
-Language is different from theme and Dynamic Type.
-
-There are two possible designs.
-
-## Option A — app-launch locale
-
-Preferred for development/testing.
-
-Requires:
-
-- selected app bundle ID
-- launching/relaunching that app
-
-Example:
-
-```bash
-xcrun simctl launch <UDID> \
-  com.example.app \
-  -AppleLanguages "(ja)" \
-  -AppleLocale "ja_JP"
-```
-
-This controls the app environment rather than permanently changing the simulator language.
-
-Because current simutil device selection does not necessarily include an app bundle ID, implement this as a **phase 2 app control**.
-
-## Option B — simulator system locale
-
-This can involve Simulator preferences and may be less stable across Xcode versions.
-
-Do not make this a required v1 feature.
-
-### Recommendation
-
-For v1:
-
-```text
-Android
-✓ Theme
-✓ Font size
-✓ Device locale
-
-iOS
-✓ Theme
-✓ Dynamic Type
-△ Language deferred to app controls
-```
-
-The UI may show iOS language as:
-
-```text
-Language    Not available yet
-```
-
-or simply omit the row.
+Do not use private Simulator preference files for a system time-zone setting.
+`simctl` has no equivalent stable command in this feature, so iOS Simulator
+does not expose this row in v1.
 
 ---
 
@@ -678,7 +598,7 @@ Recommended UX:
 │                                            │
 │ Appearance   > Dark                        │
 │ Text Size      Normal                      │
-│ Language       —                           │
+│ Time Zone      —                           │
 │                                            │
 │ ↑/↓ Select   Enter Change   Esc Close      │
 └────────────────────────────────────────────┘
@@ -692,7 +612,7 @@ Android:
 │                                            │
 │ Appearance   > Dark                        │
 │ Font Size      1.30 / Extra Large          │
-│ Language       ja-JP                       │
+│ Time Zone      Asia/Ho_Chi_Minh             │
 │                                            │
 │ ↑/↓ Select   Enter Change   Esc Close      │
 └────────────────────────────────────────────┘
@@ -837,7 +757,7 @@ lib/components/device_controls/
 ├── device_controls_dialog.dart
 ├── appearance_dialog.dart
 ├── text_size_dialog.dart
-└── locale_dialog.dart
+└── time_zone_dialog.dart
 ```
 
 Do not split prematurely if each nested selector is only a few lines.
@@ -1111,13 +1031,13 @@ adb -s emulator-5554 shell settings put system font_scale 1.30
 adb -s emulator-5554 shell settings put system font_scale 1.0
 ```
 
-Locale:
+Time zone:
 
 ```bash
-adb -s emulator-5554 shell getprop persist.sys.locale
+adb -s emulator-5554 shell getprop persist.sys.timezone
 ```
 
-Then test your chosen locale-setting implementation on the Android API levels you intend to support.
+Then set an IANA time zone and verify the selected emulator changes.
 
 ---
 
@@ -1301,7 +1221,7 @@ Supported controls include:
 
 - Light / Dark appearance
 - Font / Dynamic Type size
-- Android emulator locale
+- Android emulator time zone
 
 See [Device Controls](docs/device-controls.md).
 ```
@@ -1368,7 +1288,7 @@ unless you later find a control operation that genuinely belongs to every device
 Selected device             Controls
 ────────────────────────────────────────────────
 Android physical device     Theme/font where ADB supports it
-Android emulator            Theme/font/locale
+Android emulator            Theme/font/time zone
 iOS physical device         Disabled
 iOS Simulator shutdown      Disabled; tell user to launch it
 iOS Simulator booted        Theme/Dynamic Type
@@ -1423,7 +1343,7 @@ Once the architecture is stable, add controls one at a time:
 - permissions
 - open deep link
 - app terminate/relaunch
-- app-specific locale
+- app-specific language/locale
 - screenshot
 - push notification
 - preset profiles
@@ -1457,7 +1377,7 @@ into capabilities:
 enum DeviceControlCapability {
   appearance,
   textSize,
-  locale,
+  timeZone,
   contrast,
   density,
   orientation,
@@ -1506,7 +1426,7 @@ Adds Device Controls for running Android emulators/devices and iOS Simulators.
 - Change Light/Dark appearance
 - Change Android font scale
 - Change iOS Dynamic Type size
-- Android locale support
+- Android time-zone support
 - Device-specific command targeting
 - Keyboard-driven Device Controls dialog
 
@@ -1563,7 +1483,7 @@ v1 is done when all of these pass:
 - [ ] User can select a running Android emulator and press `c`
 - [ ] User can switch Android Light/Dark mode
 - [ ] User can change Android font size
-- [ ] User can change supported Android locale
+- [ ] User can change the selected Android device time zone
 - [ ] Commands always target the selected Android serial
 - [ ] User can select a running iOS Simulator and press `c`
 - [ ] User can switch iOS Light/Dark appearance
