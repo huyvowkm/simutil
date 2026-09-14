@@ -86,7 +86,7 @@ void main() {
       'shell',
       'cmd',
       'alarm',
-      'set-time-zone',
+      'set-timezone',
       'Asia/Ho_Chi_Minh',
     ]);
   });

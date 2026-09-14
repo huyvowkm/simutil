@@ -73,7 +73,7 @@ class AndroidDeviceControlService implements DeviceControlService {
         'shell',
         'cmd',
         'alarm',
-        'set-time-zone',
+        'set-timezone',
         timeZone,
       ], successMessage: 'Time zone set to $timeZone.');
 
