@@ -94,16 +94,13 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
               SizedBox(height: 1),
               Text(' $_message', style: st.dimmed),
             ],
-            SizedBox(height: 1),
-            Divider(),
-            Text(
-              _isLoading
-                  ? ' Loading current settings…'
-                  : _isApplying
-                  ? ' Applying…'
-                  : ' Navigate: <↑/↓> | Choose: <←/→> | Apply: <enter> | Close: <esc>',
-              style: st.dimmed,
-            ),
+            if (_isLoading || _isApplying) ...[
+              SizedBox(height: 1),
+              Text(
+                _isLoading ? ' Loading current settings…' : ' Applying…',
+                style: st.dimmed,
+              ),
+            ],
           ],
         ),
       ),
