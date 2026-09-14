@@ -72,19 +72,22 @@ void main() {
     ]);
   });
 
-  test('sets locale for the selected emulator', () async {
+  test('sets time zone for the selected emulator', () async {
     final exec = FakeCommandExec((_, _) => FakeCommandExec.ok());
 
-    final result = await service(exec).setLocale(emulator, 'vi-VN');
+    final result = await service(
+      exec,
+    ).setTimeZone(emulator, 'Asia/Ho_Chi_Minh');
 
     expect(result.success, isTrue);
     expect(exec.calls.single.arguments, [
       '-s',
       'emulator-5556',
       'shell',
-      'setprop',
-      'persist.sys.locale',
-      'vi-VN',
+      'cmd',
+      'alarm',
+      'set-time-zone',
+      'Asia/Ho_Chi_Minh',
     ]);
   });
 

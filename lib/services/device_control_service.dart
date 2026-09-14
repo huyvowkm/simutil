@@ -7,7 +7,7 @@ import 'package:simutil/models/device_text_size.dart';
 abstract interface class DeviceControlService {
   bool supports(Device device);
 
-  bool get supportsLocale;
+  bool get supportsTimeZone;
 
   Future<DeviceControlState> getState(Device device);
 
@@ -18,5 +18,5 @@ abstract interface class DeviceControlService {
 
   Future<DeviceControlResult> setTextSize(Device device, DeviceTextSize size);
 
-  Future<DeviceControlResult> setLocale(Device device, String locale);
+  Future<DeviceControlResult> setTimeZone(Device device, String timeZone);
 }

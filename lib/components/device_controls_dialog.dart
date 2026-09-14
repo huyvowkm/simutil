@@ -26,17 +26,23 @@ class DeviceControlsDialog extends StatefulComponent {
 }
 
 class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
-  static const _locales = ['en-US', 'vi-VN', 'ja-JP'];
+  static const _timeZones = [
+    'UTC',
+    'America/Los_Angeles',
+    'Europe/London',
+    'Asia/Ho_Chi_Minh',
+    'Asia/Tokyo',
+  ];
 
   int _selectedIndex = 0;
   bool _isLoading = true;
   bool _isApplying = false;
   DeviceAppearance? _appearance;
   DeviceTextSize? _textSize;
-  String? _locale;
+  String? _timeZone;
   String? _message;
 
-  int get _rowCount => component.service.supportsLocale ? 3 : 2;
+  int get _rowCount => component.service.supportsTimeZone ? 3 : 2;
 
   @override
   void initState() {
@@ -50,7 +56,7 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
     setState(() {
       _appearance = state.appearance;
       _textSize = state.textSize;
-      _locale = state.locale;
+      _timeZone = state.timeZone;
       _isLoading = false;
     });
   }
@@ -73,8 +79,8 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
               children: [
                 _row(st, 0, 'Appearance', _appearance?.label ?? 'Unknown'),
                 _row(st, 1, 'Text Size', _textSize?.label ?? 'Unknown'),
-                if (component.service.supportsLocale)
-                  _row(st, 2, 'Language', _locale ?? 'Unknown'),
+                if (component.service.supportsTimeZone)
+                  _row(st, 2, 'Time Zone', _timeZone ?? 'Unknown'),
                 if (_message != null) ...[
                   SizedBox(height: 1),
                   Text(' $_message', style: st.dimmed),
@@ -144,7 +150,7 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
         case 1:
           _textSize = _cycle(DeviceTextSize.values, _textSize, offset);
         case 2:
-          _locale = _cycle(_locales, _locale, offset);
+          _timeZone = _cycle(_timeZones, _timeZone, offset);
       }
     });
   }
@@ -168,9 +174,9 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
         component.device,
         _textSize ?? DeviceTextSize.normal,
       ),
-      _ => await component.service.setLocale(
+      _ => await component.service.setTimeZone(
         component.device,
-        _locale ?? _locales.first,
+        _timeZone ?? _timeZones.first,
       ),
     };
     if (!mounted) return;

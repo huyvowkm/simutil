@@ -35,7 +35,7 @@ class IOSDeviceControlService implements DeviceControlService {
       device.isRunning;
 
   @override
-  bool get supportsLocale => false;
+  bool get supportsTimeZone => false;
 
   @override
   Future<DeviceControlState> getState(Device device) async {
@@ -67,10 +67,12 @@ class IOSDeviceControlService implements DeviceControlService {
       ], successMessage: 'Text size set to ${size.label}');
 
   @override
-  Future<DeviceControlResult> setLocale(Device device, String locale) async =>
-      const DeviceControlResult.failure(
-        'System language is not available for iOS simulators yet.',
-      );
+  Future<DeviceControlResult> setTimeZone(
+    Device device,
+    String timeZone,
+  ) async => const DeviceControlResult.failure(
+    'System time zone is not available for iOS simulators yet.',
+  );
 
   Future<DeviceAppearance?> _readAppearance(Device device) async {
     final result = await _trySimctl(device, ['ui', device.id, 'appearance']);
