@@ -2,17 +2,17 @@ class AndroidDeviceInfo {
   const AndroidDeviceInfo({
     this.androidVersion,
     this.apiLevel,
-    this.ramAvailableBytes,
+    this.ramUsedBytes,
     this.ramTotalBytes,
-    this.storageAvailableBytes,
+    this.storageUsedBytes,
     this.storageTotalBytes,
   });
 
   final String? androidVersion;
   final int? apiLevel;
-  final int? ramAvailableBytes;
+  final int? ramUsedBytes;
   final int? ramTotalBytes;
-  final int? storageAvailableBytes;
+  final int? storageUsedBytes;
   final int? storageTotalBytes;
 }
 

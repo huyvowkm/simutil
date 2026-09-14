@@ -64,21 +64,20 @@ class DeviceDetailPanel extends StatelessComponent {
   String _memoryLabel() {
     final info = androidInfo;
     if (loadingAndroidInfo) return 'Loading…';
-    if (info?.ramAvailableBytes == null || info?.ramTotalBytes == null) {
+    if (info?.ramUsedBytes == null || info?.ramTotalBytes == null) {
       return 'Unavailable';
     }
-    return '${info!.ramAvailableBytes!.formatBytes} free / '
+    return '${info!.ramUsedBytes!.formatBytes} used / '
         '${info.ramTotalBytes!.formatBytes}';
   }
 
   String _storageLabel() {
     final info = androidInfo;
     if (loadingAndroidInfo) return 'Loading…';
-    if (info?.storageAvailableBytes == null ||
-        info?.storageTotalBytes == null) {
+    if (info?.storageUsedBytes == null || info?.storageTotalBytes == null) {
       return 'Unavailable';
     }
-    return '${info!.storageAvailableBytes!.formatBytes} free / '
+    return '${info!.storageUsedBytes!.formatBytes} used / '
         '${info.storageTotalBytes!.formatBytes}';
   }
 
