@@ -11,8 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add inline Device Controls for running Android devices and iOS Simulators:
   appearance, text size, and Android time zone.
-- Show Android version/API level, available/total RAM, and available/total
+- Show Android version/API level, used/total RAM, and used/total
   storage in the Details panel.
+
+### Fixed
+
+- Keep arrow-key navigation within the active panel; use `Tab` to switch panels.
 
 ## [0.8.1] - 2026-07-21
 

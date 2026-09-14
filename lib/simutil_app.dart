@@ -372,22 +372,10 @@ class _SimutilAppState extends State<SimutilApp> {
 
   bool _handleGlobalKey(KeyboardEvent event) {
     switch (event.logicalKey) {
-      case LogicalKey.tab || LogicalKey.arrowRight:
+      case LogicalKey.tab:
         setState(() {
           final currentIndex = focusPanelScopes.indexOf(_focusKey);
           final nextIndex = (currentIndex + 1) % focusPanelScopes.length;
-          _focusKey = focusPanelScopes[nextIndex];
-          if (_focusKey != 'controls') _deviceFocusKey = _focusKey;
-          _statusMessage = _buildIdleStatusMessage();
-        });
-        unawaited(_loadAndroidDeviceInfo());
-        return true;
-      case LogicalKey.arrowLeft:
-        setState(() {
-          final currentIndex = focusPanelScopes.indexOf(_focusKey);
-          final nextIndex = currentIndex == 0
-              ? focusPanelScopes.length - 1
-              : (currentIndex - 1) % focusPanelScopes.length;
           _focusKey = focusPanelScopes[nextIndex];
           if (_focusKey != 'controls') _deviceFocusKey = _focusKey;
           _statusMessage = _buildIdleStatusMessage();
