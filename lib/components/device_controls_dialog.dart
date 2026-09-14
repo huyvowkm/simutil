@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:nocterm/nocterm.dart';
-import 'package:simutil/components/show_overlay_dialog.dart';
 import 'package:simutil/components/simutil_icons.dart';
 import 'package:simutil/components/simutil_theme.dart';
 import 'package:simutil/models/device.dart';
@@ -9,23 +8,23 @@ import 'package:simutil/models/device_appearance.dart';
 import 'package:simutil/models/device_text_size.dart';
 import 'package:simutil/services/device_control_service.dart';
 
-class DeviceControlsDialog extends StatefulComponent {
-  const DeviceControlsDialog({
+class DeviceControlsPanel extends StatefulComponent {
+  const DeviceControlsPanel({
     super.key,
     required this.device,
     required this.service,
-    required this.onClose,
+    required this.focused,
   });
 
   final Device device;
   final DeviceControlService service;
-  final VoidCallback onClose;
+  final bool focused;
 
   @override
-  State<DeviceControlsDialog> createState() => _DeviceControlsDialogState();
+  State<DeviceControlsPanel> createState() => _DeviceControlsPanelState();
 }
 
-class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
+class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
   static const _timeZones = [
     'UTC',
     'America/Los_Angeles',
@@ -50,6 +49,20 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
     unawaited(_loadState());
   }
 
+  @override
+  void didUpdateComponent(DeviceControlsPanel oldComponent) {
+    super.didUpdateComponent(oldComponent);
+    if (oldComponent.device.id == component.device.id) return;
+    setState(() {
+      _isLoading = true;
+      _appearance = null;
+      _textSize = null;
+      _timeZone = null;
+      _message = null;
+    });
+    unawaited(_loadState());
+  }
+
   Future<void> _loadState() async {
     final state = await component.service.getState(component.device);
     if (!mounted) return;
@@ -64,42 +77,42 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
   @override
   Component build(BuildContext context) {
     final st = context.simutilTheme;
-    return Center(
-      child: Container(
-        margin: EdgeInsets.all(16),
-        decoration: st.dialogPanel('Device Controls: ${component.device.name}'),
-        child: Padding(
-          padding: EdgeInsets.all(1),
-          child: Focusable(
-            focused: true,
-            onKeyEvent: _handleKeyEvent,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _row(st, 0, 'Appearance', _appearance?.label ?? 'Unknown'),
-                _row(st, 1, 'Text Size', _textSize?.label ?? 'Unknown'),
-                if (component.service.supportsTimeZone)
-                  _row(st, 2, 'Time Zone', _timeZone ?? 'Unknown'),
-                if (_message != null) ...[
-                  SizedBox(height: 1),
-                  Text(' $_message', style: st.dimmed),
-                ],
-                SizedBox(height: 1),
-                Divider(),
-                Text(
-                  _isLoading
-                      ? ' Loading current settings…'
-                      : _isApplying
-                      ? ' Applying…'
-                      : ' Navigate: <↑/↓> | Choose: <←/→> | Apply: <enter> | Close: <esc>',
-                  style: st.dimmed,
-                ),
-              ],
+    final content = Padding(
+      padding: EdgeInsets.all(1),
+      child: Focusable(
+        focused: component.focused,
+        onKeyEvent: _handleKeyEvent,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _row(st, 0, 'Appearance', _appearance?.label ?? 'Unknown'),
+            _row(st, 1, 'Text Size', _textSize?.label ?? 'Unknown'),
+            if (component.service.supportsTimeZone)
+              _row(st, 2, 'Time Zone', _timeZone ?? 'Unknown'),
+            if (_message != null) ...[
+              SizedBox(height: 1),
+              Text(' $_message', style: st.dimmed),
+            ],
+            SizedBox(height: 1),
+            Divider(),
+            Text(
+              _isLoading
+                  ? ' Loading current settings…'
+                  : _isApplying
+                  ? ' Applying…'
+                  : ' Navigate: <↑/↓> | Choose: <←/→> | Apply: <enter> | Close: <esc>',
+              style: st.dimmed,
             ),
-          ),
+          ],
         ),
       ),
+    );
+    return Container(
+      decoration: component.focused
+          ? st.focusedPanel('Controls')
+          : st.unfocusedPanel('Controls'),
+      child: content,
     );
   }
 
@@ -115,10 +128,7 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
   }
 
   bool _handleKeyEvent(KeyboardEvent event) {
-    if (event.logicalKey == LogicalKey.escape) {
-      component.onClose();
-      return true;
-    }
+    if (event.logicalKey == LogicalKey.escape) return false;
     if (_isLoading || _isApplying) return true;
 
     switch (event.logicalKey) {
@@ -185,22 +195,4 @@ class _DeviceControlsDialogState extends State<DeviceControlsDialog> {
       _message = result.message;
     });
   }
-}
-
-Future<void> showDeviceControlsDialog({
-  required BuildContext context,
-  required Device device,
-  required DeviceControlService service,
-}) async {
-  await showOverlayDialog<bool>(
-    context: context,
-    builder: (context, completer, entry) => DeviceControlsDialog(
-      device: device,
-      service: service,
-      onClose: () {
-        completer.complete(true);
-        entry?.remove();
-      },
-    ),
-  );
 }

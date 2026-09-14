@@ -17,6 +17,7 @@ import 'package:simutil/components/simutil_theme.dart';
 import 'package:simutil/components/success_dialog.dart';
 import 'package:simutil/components/welcome_dialog.dart';
 import 'package:simutil/data/changelog_entries.dart';
+import 'package:simutil/models/android_device_info.dart';
 import 'package:simutil/models/android_quick_launch_option.dart';
 import 'package:simutil/models/app_settings.dart';
 import 'package:simutil/models/device.dart';
@@ -54,12 +55,14 @@ class _SimutilAppState extends State<SimutilApp> {
   List<Device> _androidEmulators = [];
   List<Device> _iosSimulators = [];
   List<Device> _iosDevices = [];
+  AndroidDeviceInfo? _androidDeviceInfo;
 
   bool _loadingAndroidDevices = true;
   bool _loadingAndroidEmulators = true;
   bool _loadingIosSimulators = true;
   bool _loadingIosDevices = true;
   bool _isRefreshing = false;
+  bool _loadingAndroidDeviceInfo = false;
 
   String _statusMessage = 'Loading devices…';
 
@@ -70,6 +73,7 @@ class _SimutilAppState extends State<SimutilApp> {
 
   /// Active panel: 'android' | 'ios' | 'android-emulators' | 'ios-simulators'
   String _focusKey = 'android';
+  String _deviceFocusKey = 'android';
 
   List<String> focusPanelScopes = [
     'android',
@@ -217,15 +221,11 @@ class _SimutilAppState extends State<SimutilApp> {
           _focusKey = 'android-emulators';
           _statusMessage = _buildIdleStatusMessage();
         }
-        focusPanelScopes = [
-          if (hasAndroidDevices) 'android',
-          'android-emulators',
-          if (hasIosDevices) 'ios',
-          'ios-simulators',
-        ];
+        _updateFocusPanelScopes();
 
         _statusMessage = _buildIdleStatusMessage();
       });
+      unawaited(_loadAndroidDeviceInfo());
     } finally {
       _isRefreshing = false;
     }
@@ -268,6 +268,8 @@ class _SimutilAppState extends State<SimutilApp> {
       'android-emulators' => _buildIdleStatusMessageForAndroidEmulators(),
       'ios' => _buildIdleStatusMessageForIos(),
       'ios-simulators' => _buildIdleStatusMessageForIosSimulators(),
+      'controls' =>
+        'Controls: <↑/↓> select | <←/→> choose | <enter> apply | Switch: <tab>',
       _ => _buildIdleStatusMessageForIosSimulators(),
     };
   }
@@ -287,7 +289,6 @@ class _SimutilAppState extends State<SimutilApp> {
     return _joinStatusHints([
       'Launch: <space> or <enter>',
       if (device.isRunning) 'Shutdown: t',
-      if (_controlServiceFor(device).supports(device)) 'Controls: c',
       'Plugins: p',
       'Edit config: e',
       'ADB Tools: n',
@@ -299,12 +300,7 @@ class _SimutilAppState extends State<SimutilApp> {
   }
 
   String _buildIdleStatusMessageForIos() {
-    final device = _iosDevices.isEmpty
-        ? null
-        : _iosDevices[_iosDeviceSelectedInded];
     return _joinStatusHints([
-      if (device != null && _controlServiceFor(device).supports(device))
-        'Controls: c',
       'Plugins: p',
       'Edit config: e',
       'ADB Tools: n',
@@ -332,7 +328,6 @@ class _SimutilAppState extends State<SimutilApp> {
       'Launch with option: <enter>',
       if (device.isRunning) 'Shutdown: t',
       if (device.isRunning) 'Logcat: l',
-      if (_controlServiceFor(device).supports(device)) 'Controls: c',
       'Plugins: p',
       'Edit config: e',
       'ADB Tools: n',
@@ -344,12 +339,7 @@ class _SimutilAppState extends State<SimutilApp> {
   }
 
   String _buildIdleStatusMessageForAndroidDevices() {
-    final device = _androidDevices.isEmpty
-        ? null
-        : _androidDevices[_androidDeviceSelectedIndex];
     return _joinStatusHints([
-      if (device != null && _controlServiceFor(device).supports(device))
-        'Controls: c',
       'Plugins: p',
       'Logcat: l',
       'Edit config: e',
@@ -364,16 +354,17 @@ class _SimutilAppState extends State<SimutilApp> {
   String _joinStatusHints(List<String> parts) => parts.join(' | ');
 
   Device? get _currentSelectedDevice {
-    if (_focusKey == 'android' && _androidDevices.isNotEmpty) {
+    final focusKey = _focusKey == 'controls' ? _deviceFocusKey : _focusKey;
+    if (focusKey == 'android' && _androidDevices.isNotEmpty) {
       return _androidDevices[_androidDeviceSelectedIndex];
     }
-    if (_focusKey == 'android-emulators' && _androidEmulators.isNotEmpty) {
+    if (focusKey == 'android-emulators' && _androidEmulators.isNotEmpty) {
       return _androidEmulators[_androidEmulatorSelectedIndex];
     }
-    if (_focusKey == 'ios' && _iosDevices.isNotEmpty) {
+    if (focusKey == 'ios' && _iosDevices.isNotEmpty) {
       return _iosDevices[_iosDeviceSelectedInded];
     }
-    if (_focusKey == 'ios-simulators' && _iosSimulators.isNotEmpty) {
+    if (focusKey == 'ios-simulators' && _iosSimulators.isNotEmpty) {
       return _iosSimulators[_iosSimulatorSelectedIndex];
     }
     return null;
@@ -386,8 +377,10 @@ class _SimutilAppState extends State<SimutilApp> {
           final currentIndex = focusPanelScopes.indexOf(_focusKey);
           final nextIndex = (currentIndex + 1) % focusPanelScopes.length;
           _focusKey = focusPanelScopes[nextIndex];
+          if (_focusKey != 'controls') _deviceFocusKey = _focusKey;
           _statusMessage = _buildIdleStatusMessage();
         });
+        unawaited(_loadAndroidDeviceInfo());
         return true;
       case LogicalKey.arrowLeft:
         setState(() {
@@ -396,8 +389,10 @@ class _SimutilAppState extends State<SimutilApp> {
               ? focusPanelScopes.length - 1
               : (currentIndex - 1) % focusPanelScopes.length;
           _focusKey = focusPanelScopes[nextIndex];
+          if (_focusKey != 'controls') _deviceFocusKey = _focusKey;
           _statusMessage = _buildIdleStatusMessage();
         });
+        unawaited(_loadAndroidDeviceInfo());
         return true;
       case LogicalKey.keyR:
         _refreshDevices();
@@ -414,9 +409,6 @@ class _SimutilAppState extends State<SimutilApp> {
       case LogicalKey.keyX:
         if (!Platform.isMacOS) return false;
         _showXcodeTools();
-        return true;
-      case LogicalKey.keyC:
-        _showDeviceControls();
         return true;
       case LogicalKey.keyQ:
         // On Linux/SSH we restore the terminal from a parent supervisor process
@@ -457,26 +449,45 @@ class _SimutilAppState extends State<SimutilApp> {
     DeviceOs.ios => _di.iosDeviceControlService,
   };
 
-  Future<void> _showDeviceControls() async {
+  void _updateFocusPanelScopes() {
+    final scopes = <String>[
+      if (_androidDevices.isNotEmpty) 'android',
+      'android-emulators',
+      if (_iosDevices.isNotEmpty) 'ios',
+      'ios-simulators',
+    ];
     final device = _currentSelectedDevice;
-    if (device == null) {
-      setState(() => _statusMessage = 'Select a running device first');
+    if (device != null && _controlServiceFor(device).supports(device)) {
+      scopes.add('controls');
+    }
+    focusPanelScopes = scopes;
+    if (!focusPanelScopes.contains(_focusKey)) {
+      _focusKey = 'android-emulators';
+      _deviceFocusKey = _focusKey;
+    }
+  }
+
+  Future<void> _loadAndroidDeviceInfo() async {
+    final device = _currentSelectedDevice;
+    if (device == null || device.os != DeviceOs.android || !device.isRunning) {
+      if (mounted) {
+        setState(() {
+          _androidDeviceInfo = null;
+          _loadingAndroidDeviceInfo = false;
+        });
+      }
       return;
     }
-    final service = _controlServiceFor(device);
-    if (!service.supports(device)) {
-      setState(() {
-        _statusMessage = 'Controls are unavailable for ${device.name}';
-      });
-      return;
-    }
-    await showDeviceControlsDialog(
-      context: context,
-      device: device,
-      service: service,
-    );
-    if (!mounted) return;
-    setState(() => _statusMessage = _buildIdleStatusMessage());
+    setState(() {
+      _loadingAndroidDeviceInfo = true;
+      _androidDeviceInfo = null;
+    });
+    final info = await _di.adbService.getDeviceInfo(device.id);
+    if (!mounted || _currentSelectedDevice?.id != device.id) return;
+    setState(() {
+      _androidDeviceInfo = info;
+      _loadingAndroidDeviceInfo = false;
+    });
   }
 
   Future<void> _showXcodeTools() async {
@@ -803,16 +814,51 @@ class _SimutilAppState extends State<SimutilApp> {
                     ],
                   ),
                 ),
-                Expanded(
-                  flex: 2,
-                  child: DeviceDetailPanel(device: _currentSelectedDevice),
-                ),
+                Expanded(child: _deviceInformationColumn()),
               ],
             ),
           ),
           AppStatusBar(message: _statusMessage),
         ],
       ),
+    );
+  }
+
+  Component _deviceInformationColumn() {
+    final device = _currentSelectedDevice;
+    final service = device == null ? null : _controlServiceFor(device);
+    final controlsAvailable = device != null && service!.supports(device);
+    final st = context.simutilTheme;
+
+    return Column(
+      children: [
+        Expanded(
+          child: DeviceDetailPanel(
+            device: device,
+            androidInfo: _androidDeviceInfo,
+            loadingAndroidInfo: _loadingAndroidDeviceInfo,
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: controlsAvailable
+              ? DeviceControlsPanel(
+                  device: device,
+                  service: service,
+                  focused: _focusKey == 'controls',
+                )
+              : Container(
+                  decoration: st.unfocusedPanel('Controls'),
+                  child: Center(
+                    child: Text(
+                      'Launch a supported device to use controls',
+                      style: st.muted,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+        ),
+      ],
     );
   }
 
@@ -829,9 +875,14 @@ class _SimutilAppState extends State<SimutilApp> {
         isLoading: _loadingAndroidDevices,
         selectedIndex: _androidDeviceSelectedIndex,
         emptyMessage: 'No Android devices found',
-        onSelectionChanged: (i) => setState(() {
-          _androidDeviceSelectedIndex = i;
-        }),
+        onSelectionChanged: (i) {
+          setState(() {
+            _androidDeviceSelectedIndex = i;
+            _updateFocusPanelScopes();
+            _statusMessage = _buildIdleStatusMessage();
+          });
+          unawaited(_loadAndroidDeviceInfo());
+        },
         onDeviceLaunchRequested: null,
         onDeviceShowOptions: null,
         onDeviceLogcatRequested: _onDeviceLogcatRequested,
@@ -853,10 +904,14 @@ class _SimutilAppState extends State<SimutilApp> {
         selectedIndex: _androidEmulatorSelectedIndex,
         onDeviceShutdownRequested: _onDeviceShutdownRequested,
         emptyMessage: 'No Android emulators found',
-        onSelectionChanged: (i) => setState(() {
-          _androidEmulatorSelectedIndex = i;
-          _statusMessage = _buildIdleStatusMessage();
-        }),
+        onSelectionChanged: (i) {
+          setState(() {
+            _androidEmulatorSelectedIndex = i;
+            _updateFocusPanelScopes();
+            _statusMessage = _buildIdleStatusMessage();
+          });
+          unawaited(_loadAndroidDeviceInfo());
+        },
         onDeviceLaunchRequested: _onDeviceDefaultLaunch,
         onDeviceShowOptions: _onDeviceShowOptions,
         onDeviceLogcatRequested: _onDeviceLogcatRequested,
@@ -895,6 +950,7 @@ class _SimutilAppState extends State<SimutilApp> {
         emptyMessage: 'No iOS simulators found',
         onSelectionChanged: (i) => setState(() {
           _iosSimulatorSelectedIndex = i;
+          _updateFocusPanelScopes();
           _statusMessage = _buildIdleStatusMessage();
         }),
         onDeviceLaunchRequested: _onDeviceDefaultLaunch,
@@ -917,7 +973,10 @@ class _SimutilAppState extends State<SimutilApp> {
         isLoading: _loadingIosDevices,
         selectedIndex: _iosDeviceSelectedInded,
         emptyMessage: 'No iOS devices found',
-        onSelectionChanged: (i) => setState(() => _iosDeviceSelectedInded = i),
+        onSelectionChanged: (i) => setState(() {
+          _iosDeviceSelectedInded = i;
+          _updateFocusPanelScopes();
+        }),
         onDeviceLaunchRequested: _onDeviceDefaultLaunch,
         onDeviceShowOptions: _onDeviceShowOptions,
       ),

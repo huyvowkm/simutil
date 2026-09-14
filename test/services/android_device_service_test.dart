@@ -206,6 +206,56 @@ void main() {
     });
   });
 
+  group('getDeviceInfo', () {
+    test(
+      'reads Android version, RAM, and storage for the selected device',
+      () async {
+        final exec = FakeCommandExec((_, args) {
+          if (args.contains('ro.build.version.release')) {
+            return FakeCommandExec.ok('16\n');
+          }
+          if (args.contains('ro.build.version.sdk')) {
+            return FakeCommandExec.ok('36\n');
+          }
+          if (args.contains('/proc/meminfo')) {
+            return FakeCommandExec.ok(
+              'MemTotal:        8388608 kB\nMemAvailable:    4194304 kB\n',
+            );
+          }
+          if (args.contains('/data')) {
+            return FakeCommandExec.ok(
+              'Filesystem 1K-blocks Used Available Use% Mounted on\n'
+              '/dev/block/dm-0 10485760 2097152 8388608 20% /data\n',
+            );
+          }
+          return null;
+        });
+
+        final info = await service(exec).getDeviceInfo('emulator-5556');
+
+        expect(info?.androidVersion, '16');
+        expect(info?.apiLevel, 36);
+        expect(info?.ramTotalBytes, 8388608 * 1024);
+        expect(info?.ramAvailableBytes, 4194304 * 1024);
+        expect(info?.storageTotalBytes, 10485760 * 1024);
+        expect(info?.storageAvailableBytes, 8388608 * 1024);
+        expect(
+          exec.calls,
+          everyElement(
+            predicate<FakeCommandCall>(
+              (call) => call.arguments.take(2).join(' ') == '-s emulator-5556',
+            ),
+          ),
+        );
+      },
+    );
+
+    test('returns null memory and storage when output cannot be parsed', () {
+      expect(AndroidDeviceService.parseMemoryInfo('invalid'), isNull);
+      expect(AndroidDeviceService.parseStorageInfo('invalid'), isNull);
+    });
+  });
+
   group('connectDevice', () {
     test('reports success on "connected to"', () async {
       final exec = FakeCommandExec(
