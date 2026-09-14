@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Keep arrow-key navigation within the active panel; use `Tab` to switch panels.
+- Use `←/→` to switch device panels and reserve `Tab` for opening or leaving
+  device controls.
 
 ## [0.8.1] - 2026-07-21
 

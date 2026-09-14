@@ -49,7 +49,8 @@ class WelcomeDialog extends StatelessComponent {
                 Text(" Let's try with these shortcuts:", style: st.body),
                 SizedBox(height: 1),
                 Text('  • Navigate devices: <↑/↓>', style: st.body),
-                Text('  • Switch panels: <tab>', style: st.body),
+                Text('  • Switch device panels: <←/→>', style: st.body),
+                Text('  • Open controls: <tab>', style: st.body),
                 Text(
                   '  • Launch selected device: <space> or <enter>',
                   style: st.body,

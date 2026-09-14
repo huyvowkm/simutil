@@ -71,7 +71,7 @@ class _SimutilAppState extends State<SimutilApp> {
   int _iosSimulatorSelectedIndex = 0;
   int _iosDeviceSelectedInded = 0;
 
-  /// Active panel: 'android' | 'ios' | 'android-emulators' | 'ios-simulators'
+  /// Active panel: a device list or 'controls'.
   String _focusKey = 'android';
   String _deviceFocusKey = 'android';
 
@@ -269,7 +269,7 @@ class _SimutilAppState extends State<SimutilApp> {
       'ios' => _buildIdleStatusMessageForIos(),
       'ios-simulators' => _buildIdleStatusMessageForIosSimulators(),
       'controls' =>
-        'Controls: <↑/↓> select | <←/→> choose | <enter> apply | Switch: <tab>',
+        'Controls: <↑/↓> select | <←/→> choose | <enter> apply | Back: <tab>',
       _ => _buildIdleStatusMessageForIosSimulators(),
     };
   }
@@ -281,7 +281,7 @@ class _SimutilAppState extends State<SimutilApp> {
         'ADB Tools: n',
         if (Platform.isMacOS) 'Xcode Tools: x',
         'Refresh: r',
-        'Switch: <tab>',
+        'Switch device: <←/→>',
         'Quit: q',
       ]);
     }
@@ -294,7 +294,7 @@ class _SimutilAppState extends State<SimutilApp> {
       'ADB Tools: n',
       if (Platform.isMacOS) 'Xcode Tools: x',
       'Refresh: r',
-      'Switch: <tab>',
+      'Switch device: <←/→>',
       'Quit: q',
     ]);
   }
@@ -306,7 +306,7 @@ class _SimutilAppState extends State<SimutilApp> {
       'ADB Tools: n',
       if (Platform.isMacOS) 'Xcode Tools: x',
       'Refresh: r',
-      'Switch: <tab>',
+      'Switch device: <←/→>',
       'Quit: q',
     ]);
   }
@@ -318,7 +318,7 @@ class _SimutilAppState extends State<SimutilApp> {
         'ADB Tools: n',
         if (Platform.isMacOS) 'Xcode Tools: x',
         'Refresh: r',
-        'Switch: <tab>',
+        'Switch device: <←/→>',
         'Quit: q',
       ]);
     }
@@ -333,7 +333,7 @@ class _SimutilAppState extends State<SimutilApp> {
       'ADB Tools: n',
       if (Platform.isMacOS) 'Xcode Tools: x',
       'Refresh: r',
-      'Switch: <tab>',
+      'Switch device: <←/→>',
       'Quit: q',
     ]);
   }
@@ -346,7 +346,7 @@ class _SimutilAppState extends State<SimutilApp> {
       'ADB Tools: n',
       if (Platform.isMacOS) 'Xcode Tools: x',
       'Refresh: r',
-      'Switch: <tab>',
+      'Switch device: <←/→>',
       'Quit: q',
     ]);
   }
@@ -373,11 +373,37 @@ class _SimutilAppState extends State<SimutilApp> {
   bool _handleGlobalKey(KeyboardEvent event) {
     switch (event.logicalKey) {
       case LogicalKey.tab:
+        if (_focusKey == 'controls') {
+          setState(() {
+            _focusKey = _deviceFocusKey;
+            _statusMessage = _buildIdleStatusMessage();
+          });
+          unawaited(_loadAndroidDeviceInfo());
+          return true;
+        }
+        final device = _currentSelectedDevice;
+        if (device == null || !_controlServiceFor(device).supports(device)) {
+          return true;
+        }
         setState(() {
-          final currentIndex = focusPanelScopes.indexOf(_focusKey);
-          final nextIndex = (currentIndex + 1) % focusPanelScopes.length;
-          _focusKey = focusPanelScopes[nextIndex];
-          if (_focusKey != 'controls') _deviceFocusKey = _focusKey;
+          _deviceFocusKey = _focusKey;
+          _focusKey = 'controls';
+          _statusMessage = _buildIdleStatusMessage();
+        });
+        unawaited(_loadAndroidDeviceInfo());
+        return true;
+      case LogicalKey.arrowLeft || LogicalKey.arrowRight:
+        final deviceScopes = focusPanelScopes
+            .where((scope) => scope != 'controls')
+            .toList();
+        final currentIndex = deviceScopes.indexOf(_focusKey);
+        if (currentIndex == -1 || deviceScopes.length < 2) return true;
+        final offset = event.logicalKey == LogicalKey.arrowRight ? 1 : -1;
+        setState(() {
+          _focusKey =
+              deviceScopes[(currentIndex + offset + deviceScopes.length) %
+                  deviceScopes.length];
+          _deviceFocusKey = _focusKey;
           _statusMessage = _buildIdleStatusMessage();
         });
         unawaited(_loadAndroidDeviceInfo());
