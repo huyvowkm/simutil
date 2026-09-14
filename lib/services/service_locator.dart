@@ -1,7 +1,9 @@
 import 'package:simutil/services/android_device_service.dart';
+import 'package:simutil/services/android_device_control_service.dart';
 import 'package:simutil/services/app_state.dart';
 import 'package:simutil/services/command_exec.dart';
 import 'package:simutil/services/ios_device_service.dart';
+import 'package:simutil/services/ios_device_control_service.dart';
 import 'package:simutil/services/isolate_runner.dart';
 import 'package:simutil/services/plugin_registry_service.dart';
 import 'package:simutil/services/plugin_runner_service.dart';
@@ -24,13 +26,18 @@ class ServiceLocator {
     commandExec,
   );
   late final IOSDeviceService simctlService = IOSDeviceService(commandExec);
+  late final AndroidDeviceControlService androidDeviceControlService =
+      AndroidDeviceControlService(commandExec, adbService);
+  late final IOSDeviceControlService iosDeviceControlService =
+      IOSDeviceControlService(commandExec);
   late final SettingsService settingsService = SettingsServiceImpl(commandExec);
   late final AppStateService appStateService = AppStateServiceImpl();
   late final WifiDiscoveryService wifiDiscoveryService =
       MdnsWifiDiscoveryService();
   late final PluginRegistryService pluginRegistry = PluginRegistryServiceImpl();
-  late final PluginRunnerService pluginRunner =
-      PluginRunnerServiceImpl(commandExec);
+  late final PluginRunnerService pluginRunner = PluginRunnerServiceImpl(
+    commandExec,
+  );
   late final XcodeCacheService xcodeCacheService = XcodeCacheService(
     commandExec,
   );

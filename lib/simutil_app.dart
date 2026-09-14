@@ -8,6 +8,7 @@ import 'package:simutil/components/app_header.dart';
 import 'package:simutil/components/app_status_bar.dart';
 import 'package:simutil/components/changelog_dialog.dart';
 import 'package:simutil/components/confirm_dialog.dart';
+import 'package:simutil/components/device_controls_dialog.dart';
 import 'package:simutil/components/device_detail_panel.dart';
 import 'package:simutil/components/device_list_component.dart';
 import 'package:simutil/components/error_dialog.dart';
@@ -19,6 +20,7 @@ import 'package:simutil/data/changelog_entries.dart';
 import 'package:simutil/models/android_quick_launch_option.dart';
 import 'package:simutil/models/app_settings.dart';
 import 'package:simutil/models/device.dart';
+import 'package:simutil/services/device_control_service.dart';
 import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/plugin_config.dart';
 import 'package:simutil/plugins/adb_tools/adb_tools_dialog.dart';
@@ -285,6 +287,7 @@ class _SimutilAppState extends State<SimutilApp> {
     return _joinStatusHints([
       'Launch: <space> or <enter>',
       if (device.isRunning) 'Shutdown: t',
+      if (_controlServiceFor(device).supports(device)) 'Controls: c',
       'Plugins: p',
       'Edit config: e',
       'ADB Tools: n',
@@ -296,7 +299,12 @@ class _SimutilAppState extends State<SimutilApp> {
   }
 
   String _buildIdleStatusMessageForIos() {
+    final device = _iosDevices.isEmpty
+        ? null
+        : _iosDevices[_iosDeviceSelectedInded];
     return _joinStatusHints([
+      if (device != null && _controlServiceFor(device).supports(device))
+        'Controls: c',
       'Plugins: p',
       'Edit config: e',
       'ADB Tools: n',
@@ -324,6 +332,7 @@ class _SimutilAppState extends State<SimutilApp> {
       'Launch with option: <enter>',
       if (device.isRunning) 'Shutdown: t',
       if (device.isRunning) 'Logcat: l',
+      if (_controlServiceFor(device).supports(device)) 'Controls: c',
       'Plugins: p',
       'Edit config: e',
       'ADB Tools: n',
@@ -335,7 +344,12 @@ class _SimutilAppState extends State<SimutilApp> {
   }
 
   String _buildIdleStatusMessageForAndroidDevices() {
+    final device = _androidDevices.isEmpty
+        ? null
+        : _androidDevices[_androidDeviceSelectedIndex];
     return _joinStatusHints([
+      if (device != null && _controlServiceFor(device).supports(device))
+        'Controls: c',
       'Plugins: p',
       'Logcat: l',
       'Edit config: e',
@@ -401,6 +415,9 @@ class _SimutilAppState extends State<SimutilApp> {
         if (!Platform.isMacOS) return false;
         _showXcodeTools();
         return true;
+      case LogicalKey.keyC:
+        _showDeviceControls();
+        return true;
       case LogicalKey.keyQ:
         // On Linux/SSH we restore the terminal from a parent supervisor process
         // after the TUI child exits, so here we want the child to terminate
@@ -435,6 +452,33 @@ class _SimutilAppState extends State<SimutilApp> {
     }
   }
 
+  DeviceControlService _controlServiceFor(Device device) => switch (device.os) {
+    DeviceOs.android => _di.androidDeviceControlService,
+    DeviceOs.ios => _di.iosDeviceControlService,
+  };
+
+  Future<void> _showDeviceControls() async {
+    final device = _currentSelectedDevice;
+    if (device == null) {
+      setState(() => _statusMessage = 'Select a running device first');
+      return;
+    }
+    final service = _controlServiceFor(device);
+    if (!service.supports(device)) {
+      setState(() {
+        _statusMessage = 'Controls are unavailable for ${device.name}';
+      });
+      return;
+    }
+    await showDeviceControlsDialog(
+      context: context,
+      device: device,
+      service: service,
+    );
+    if (!mounted) return;
+    setState(() => _statusMessage = _buildIdleStatusMessage());
+  }
+
   Future<void> _showXcodeTools() async {
     // Only wired from the macOS key binding; keep a hard guard for safety.
     if (!Platform.isMacOS) return;
@@ -465,7 +509,9 @@ class _SimutilAppState extends State<SimutilApp> {
 
     setState(() => _statusMessage = 'Measuring Derived Data…');
     final sizeBytes = await service.getDerivedDataSizeBytes();
-    final sizeLabel = sizeBytes == null ? 'unknown size' : sizeBytes.formatBytes;
+    final sizeLabel = sizeBytes == null
+        ? 'unknown size'
+        : sizeBytes.formatBytes;
 
     if (!mounted) return;
 
