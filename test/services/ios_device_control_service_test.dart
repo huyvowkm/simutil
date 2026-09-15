@@ -1,5 +1,6 @@
 import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
+import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_state.dart';
 import 'package:simutil/models/device_text_size.dart';
 import 'package:simutil/models/device_type.dart';
@@ -80,5 +81,16 @@ void main() {
 
     expect(result.success, isFalse);
     expect(result.message, 'unsupported');
+  });
+
+  test('does not offer network controls for iOS simulators', () async {
+    final exec = FakeCommandExec((_, _) => FakeCommandExec.ok());
+
+    final result = await service(
+      exec,
+    ).setNetworkMode(simulator, DeviceNetworkMode.none);
+
+    expect(result.success, isFalse);
+    expect(exec.calls, isEmpty);
   });
 }

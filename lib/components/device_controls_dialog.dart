@@ -5,6 +5,7 @@ import 'package:simutil/components/simutil_icons.dart';
 import 'package:simutil/components/simutil_theme.dart';
 import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
+import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_text_size.dart';
 import 'package:simutil/services/device_control_service.dart';
 
@@ -32,6 +33,7 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
     'Asia/Ho_Chi_Minh',
     'Asia/Tokyo',
   ];
+  static const _networkModes = DeviceNetworkMode.values;
 
   int _selectedIndex = 0;
   bool _isLoading = true;
@@ -39,9 +41,13 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
   DeviceAppearance? _appearance;
   DeviceTextSize? _textSize;
   String? _timeZone;
+  DeviceNetworkMode? _networkMode;
   String? _message;
 
-  int get _rowCount => component.service.supportsTimeZone ? 3 : 2;
+  int get _rowCount =>
+      2 +
+      (component.service.supportsTimeZone ? 1 : 0) +
+      (component.service.supportsNetwork ? 1 : 0);
 
   @override
   void initState() {
@@ -58,6 +64,7 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
       _appearance = null;
       _textSize = null;
       _timeZone = null;
+      _networkMode = null;
       _message = null;
     });
     unawaited(_loadState());
@@ -70,6 +77,7 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
       _appearance = state.appearance;
       _textSize = state.textSize;
       _timeZone = state.timeZone;
+      _networkMode = state.networkMode;
       _isLoading = false;
     });
   }
@@ -90,6 +98,8 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
             _row(st, 1, 'Text Size', _textSize?.label ?? 'Unknown'),
             if (component.service.supportsTimeZone)
               _row(st, 2, 'Time Zone', _timeZone ?? 'Unknown'),
+            if (component.service.supportsNetwork)
+              _row(st, 3, 'Network', _networkMode?.label ?? 'Unknown'),
             if (_message != null) ...[
               SizedBox(height: 1),
               Text(' $_message', style: st.dimmed),
@@ -158,6 +168,8 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
           _textSize = _cycle(DeviceTextSize.values, _textSize, offset);
         case 2:
           _timeZone = _cycle(_timeZones, _timeZone, offset);
+        case 3:
+          _networkMode = _cycle(_networkModes, _networkMode, offset);
       }
     });
   }
@@ -181,9 +193,13 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
         component.device,
         _textSize ?? DeviceTextSize.normal,
       ),
-      _ => await component.service.setTimeZone(
+      2 => await component.service.setTimeZone(
         component.device,
         _timeZone ?? _timeZones.first,
+      ),
+      _ => await component.service.setNetworkMode(
+        component.device,
+        _networkMode ?? DeviceNetworkMode.both,
       ),
     };
     if (!mounted) return;

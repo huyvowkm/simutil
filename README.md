@@ -60,6 +60,7 @@ shortcut. Controls chỉ hoạt động với emulator/simulator hoặc Android 
 | Light / Dark appearance | Có | Có nếu ADB hỗ trợ | Có | Không hỗ trợ |
 | Font / text size | Có | Có nếu ADB hỗ trợ | Có (Dynamic Type) | Không hỗ trợ |
 | System time zone | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
+| Network (Wi-Fi / mobile data) | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
 | Đọc giá trị hiện tại | Khi command hỗ trợ | Khi command hỗ trợ | Khi `simctl` hỗ trợ | Không hỗ trợ |
 | Báo lỗi command rõ ràng | Có | Có | Có | Không hỗ trợ |
 
@@ -70,6 +71,7 @@ Giao diện dự kiến vẫn hoàn toàn điều khiển bằng bàn phím:
 │ Appearance                          Dark    │
 │ Text Size                       Extra Large │
 │ Time Zone             Asia/Ho_Chi_Minh     │
+│ Network                              Both  │
 │                                            │
 │ ↑/↓ Navigate  ←/→ Choose  Enter Apply      │
 └────────────────────────────────────────────┘
