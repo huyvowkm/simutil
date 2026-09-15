@@ -72,8 +72,6 @@ Giao diện dự kiến vẫn hoàn toàn điều khiển bằng bàn phím:
 │ Text Size                       Extra Large │
 │ Time Zone             Asia/Ho_Chi_Minh     │
 │ Network                              Both  │
-│                                            │
-│ ↑/↓ Navigate  ←/→ Choose  Enter Apply      │
 └────────────────────────────────────────────┘
 ```
 
@@ -161,32 +159,90 @@ probes, shortcuts, examples, and troubleshooting — in
 
 ## Installation
 
-### Binary Install
+The installation source determines which `simutil` you run. The Homebrew and
+pub.dev packages are upstream releases; use the Git installation below to run
+this fork (`huyvowkm/simutil`) and its device-control features.
+
+### Upstream owner releases
+
+#### Binary install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/dungngminh/simutil/main/install.sh | bash
 ```
 
-### Binary Install (Windows PowerShell)
+#### Binary install (Windows PowerShell)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -Command "iwr -useb https://raw.githubusercontent.com/dungngminh/simutil/main/install.ps1 | iex"
 ```
 
-### Using Homebrew (macOS/Linux)
+#### Homebrew (macOS/Linux)
 
 ```bash
 brew tap dungngminh/simutil
 brew install simutil
 ```
 
-### From pub.dev
+#### pub.dev
 
 ```bash
 dart pub global activate simutil
 ```
 
-### From source
+### This fork from GitHub
+
+This option requires the Dart SDK and does not require cloning the repository:
+
+```bash
+dart pub global activate --source git \
+  https://github.com/huyvowkm/simutil.git \
+  --git-ref main
+```
+
+For an SSH Git remote, use:
+
+```bash
+dart pub global activate --source git \
+  git@github.com:huyvowkm/simutil.git \
+  --git-ref main
+```
+
+Verify the selected executable and version:
+
+```bash
+command -v simutil
+simutil version
+```
+
+### Switch from Homebrew to this fork
+
+If Homebrew's `simutil` is earlier in your `PATH`, it can hide the Dart global
+executable. Unlink it (reversible; it does not uninstall the formula), activate
+this fork, and refresh your shell command cache:
+
+```bash
+brew unlink simutil
+dart pub global activate --source git \
+  git@github.com:huyvowkm/simutil.git \
+  --git-ref main
+rehash
+simutil version
+```
+
+To return to the Homebrew package later:
+
+```bash
+brew link simutil
+```
+
+On the author's machine, the same refresh command is available as:
+
+```bash
+run reset-stl
+```
+
+### From a local source checkout
 
 ```bash
 git clone https://github.com/huyvowkm/simutil.git
@@ -199,6 +255,31 @@ Then run:
 
 ```bash
 simutil
+```
+
+### Update the Git installation
+
+Git-based global packages are snapshots. Run the activation command again after
+new commits are pushed to `main`, or use `run reset-stl` when it is configured.
+
+## Maintaining this fork
+
+Make feature work on a branch, verify it, fast-forward it into `main`, then
+push the result:
+
+```bash
+git checkout main
+git pull --ff-only origin main
+git merge --ff-only feat/your-feature
+git push origin main
+```
+
+After pushing, refresh the globally installed fork:
+
+```bash
+dart pub global activate --source git \
+  git@github.com:huyvowkm/simutil.git \
+  --git-ref main
 ```
 
 ## Supported platforms
