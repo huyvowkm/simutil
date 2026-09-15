@@ -1,5 +1,6 @@
 import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
+import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_state.dart';
 import 'package:simutil/models/device_text_size.dart';
 import 'package:simutil/models/device_type.dart';
@@ -90,6 +91,35 @@ void main() {
       'Asia/Ho_Chi_Minh',
     ]);
   });
+
+  for (final networkCase in [
+    (DeviceNetworkMode.wifi, 'enable', 'disable'),
+    (DeviceNetworkMode.mobileData, 'disable', 'enable'),
+    (DeviceNetworkMode.both, 'enable', 'enable'),
+    (DeviceNetworkMode.none, 'disable', 'disable'),
+  ]) {
+    test('sets ${networkCase.$1.label} for the selected emulator', () async {
+      final exec = FakeCommandExec((_, _) => FakeCommandExec.ok());
+
+      final result = await service(
+        exec,
+      ).setNetworkMode(emulator, networkCase.$1);
+
+      expect(result.success, isTrue);
+      expect(exec.calls.map((call) => call.arguments), [
+        ['-s', 'emulator-5556', 'shell', 'svc', 'wifi', networkCase.$2],
+        [
+          '-s',
+          'emulator-5556',
+          'shell',
+          'cmd',
+          'phone',
+          'data',
+          networkCase.$3,
+        ],
+      ]);
+    });
+  }
 
   test('returns stderr when an Android command fails', () async {
     final exec = FakeCommandExec(

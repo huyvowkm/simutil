@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add Android network controls for Wi-Fi, mobile data, both, or neither.
+
 ## [0.8.2] - 2026-09-14
 
 ### Added

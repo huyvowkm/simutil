@@ -2,6 +2,7 @@ import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
 import 'package:simutil/models/device_control_result.dart';
 import 'package:simutil/models/device_control_state.dart';
+import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/device_text_size.dart';
 import 'package:simutil/services/android_device_service.dart';
@@ -31,16 +32,23 @@ class AndroidDeviceControlService implements DeviceControlService {
   bool get supportsTimeZone => true;
 
   @override
+  bool get supportsNetwork => true;
+
+  @override
   Future<DeviceControlState> getState(Device device) async {
     if (!supports(device)) return const DeviceControlState();
 
-    final appearance = await _readAppearance(device);
-    final textSize = await _readTextSize(device);
-    final timeZone = await _readTimeZone(device);
+    final results = await Future.wait([
+      _readAppearance(device),
+      _readTextSize(device),
+      _readTimeZone(device),
+      _readNetworkMode(device),
+    ]);
     return DeviceControlState(
-      appearance: appearance,
-      textSize: textSize,
-      timeZone: timeZone,
+      appearance: results[0] as DeviceAppearance?,
+      textSize: results[1] as DeviceTextSize?,
+      timeZone: results[2] as String?,
+      networkMode: results[3] as DeviceNetworkMode?,
     );
   }
 
@@ -77,6 +85,31 @@ class AndroidDeviceControlService implements DeviceControlService {
         timeZone,
       ], successMessage: 'Time zone set to $timeZone.');
 
+  @override
+  Future<DeviceControlResult> setNetworkMode(
+    Device device,
+    DeviceNetworkMode mode,
+  ) async {
+    final wifiEnabled = switch (mode) {
+      DeviceNetworkMode.wifi || DeviceNetworkMode.both => true,
+      DeviceNetworkMode.mobileData || DeviceNetworkMode.none => false,
+    };
+    final mobileDataEnabled = switch (mode) {
+      DeviceNetworkMode.mobileData || DeviceNetworkMode.both => true,
+      DeviceNetworkMode.wifi || DeviceNetworkMode.none => false,
+    };
+    return _runAll(device, [
+      ['shell', 'svc', 'wifi', wifiEnabled ? 'enable' : 'disable'],
+      [
+        'shell',
+        'cmd',
+        'phone',
+        'data',
+        mobileDataEnabled ? 'enable' : 'disable',
+      ],
+    ], successMessage: 'Network set to ${mode.label}');
+  }
+
   Future<DeviceAppearance?> _readAppearance(Device device) async {
     final result = await _tryAdb(device, ['shell', 'cmd', 'uimode', 'night']);
     if (result == null || !result.success) return null;
@@ -112,6 +145,21 @@ class AndroidDeviceControlService implements DeviceControlService {
     return timeZone == null || timeZone.isEmpty ? null : timeZone;
   }
 
+  Future<DeviceNetworkMode?> _readNetworkMode(Device device) async {
+    final results = await Future.wait([
+      _tryAdb(device, ['shell', 'settings', 'get', 'global', 'wifi_on']),
+      _tryAdb(device, ['shell', 'settings', 'get', 'global', 'mobile_data']),
+    ]);
+    final wifiEnabled = results[0]?.stdout.trim() == '1';
+    final mobileDataEnabled = results[1]?.stdout.trim() == '1';
+    return switch ((wifiEnabled, mobileDataEnabled)) {
+      (true, true) => DeviceNetworkMode.both,
+      (true, false) => DeviceNetworkMode.wifi,
+      (false, true) => DeviceNetworkMode.mobileData,
+      (false, false) => DeviceNetworkMode.none,
+    };
+  }
+
   Future<DeviceControlResult> _run(
     Device device,
     List<String> arguments, {
@@ -127,6 +175,25 @@ class AndroidDeviceControlService implements DeviceControlService {
       return DeviceControlResult.success(successMessage);
     }
     return DeviceControlResult.failure(_failureMessage(result));
+  }
+
+  Future<DeviceControlResult> _runAll(
+    Device device,
+    List<List<String>> commands, {
+    required String successMessage,
+  }) async {
+    if (!supports(device)) {
+      return const DeviceControlResult.failure(
+        'Controls require a running Android device.',
+      );
+    }
+    for (final command in commands) {
+      final result = await _tryAdb(device, command);
+      if (!(result?.success ?? false)) {
+        return DeviceControlResult.failure(_failureMessage(result));
+      }
+    }
+    return DeviceControlResult.success(successMessage);
   }
 
   Future<CommandResult?> _tryAdb(Device device, List<String> arguments) async {

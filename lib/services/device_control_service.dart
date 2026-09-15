@@ -2,12 +2,15 @@ import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
 import 'package:simutil/models/device_control_result.dart';
 import 'package:simutil/models/device_control_state.dart';
+import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_text_size.dart';
 
 abstract interface class DeviceControlService {
   bool supports(Device device);
 
   bool get supportsTimeZone;
+
+  bool get supportsNetwork;
 
   Future<DeviceControlState> getState(Device device);
 
@@ -19,4 +22,9 @@ abstract interface class DeviceControlService {
   Future<DeviceControlResult> setTextSize(Device device, DeviceTextSize size);
 
   Future<DeviceControlResult> setTimeZone(Device device, String timeZone);
+
+  Future<DeviceControlResult> setNetworkMode(
+    Device device,
+    DeviceNetworkMode mode,
+  );
 }

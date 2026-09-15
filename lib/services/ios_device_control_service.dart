@@ -4,6 +4,7 @@ import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
 import 'package:simutil/models/device_control_result.dart';
 import 'package:simutil/models/device_control_state.dart';
+import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/device_text_size.dart';
 import 'package:simutil/models/device_type.dart';
@@ -36,6 +37,9 @@ class IOSDeviceControlService implements DeviceControlService {
 
   @override
   bool get supportsTimeZone => false;
+
+  @override
+  bool get supportsNetwork => false;
 
   @override
   Future<DeviceControlState> getState(Device device) async {
@@ -72,6 +76,14 @@ class IOSDeviceControlService implements DeviceControlService {
     String timeZone,
   ) async => const DeviceControlResult.failure(
     'System time zone is not available for iOS simulators yet.',
+  );
+
+  @override
+  Future<DeviceControlResult> setNetworkMode(
+    Device device,
+    DeviceNetworkMode mode,
+  ) async => const DeviceControlResult.failure(
+    'Network controls are not available for iOS simulators.',
   );
 
   Future<DeviceAppearance?> _readAppearance(Device device) async {
