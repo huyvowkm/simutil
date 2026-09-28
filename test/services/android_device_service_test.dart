@@ -76,16 +76,18 @@ void main() {
       expect(svc.adbPath, overrideAdb);
     });
 
-    test('falls back to Linux SDK path when adb exists there', () {
+    test('falls back to the host SDK path when adb exists there', () {
+      final sdkHome = Platform.isLinux
+          ? '/home/test/Android/Sdk'
+          : '/home/test/Library/Android/sdk';
       final svc = AndroidDeviceService(
         FakeCommandExec((_, _) => null),
         environment: {'HOME': '/home/test'},
-        fileExists: (path) =>
-            path == '/home/test/Android/Sdk/platform-tools/adb',
+        fileExists: (path) => path == '$sdkHome/platform-tools/adb',
       );
 
-      expect(svc.getAndroidHome(), '/home/test/Android/Sdk');
-      expect(svc.adbPath, '/home/test/Android/Sdk/platform-tools/adb');
+      expect(svc.getAndroidHome(), sdkHome);
+      expect(svc.adbPath, '$sdkHome/platform-tools/adb');
     });
 
     test('falls back to adb on PATH when SDK adb is missing', () {
@@ -203,6 +205,56 @@ void main() {
       expect(devices, hasLength(1));
       expect(devices.single.id, 'ABC123');
       expect(devices.single.name, 'Pixel 6a');
+    });
+  });
+
+  group('getDeviceInfo', () {
+    test(
+      'reads Android version, RAM, and storage for the selected device',
+      () async {
+        final exec = FakeCommandExec((_, args) {
+          if (args.contains('ro.build.version.release')) {
+            return FakeCommandExec.ok('16\n');
+          }
+          if (args.contains('ro.build.version.sdk')) {
+            return FakeCommandExec.ok('36\n');
+          }
+          if (args.contains('/proc/meminfo')) {
+            return FakeCommandExec.ok(
+              'MemTotal:        8388608 kB\nMemAvailable:    4194304 kB\n',
+            );
+          }
+          if (args.contains('/data')) {
+            return FakeCommandExec.ok(
+              'Filesystem 1K-blocks Used Available Use% Mounted on\n'
+              '/dev/block/dm-0 10485760 2097152 8388608 20% /data\n',
+            );
+          }
+          return null;
+        });
+
+        final info = await service(exec).getDeviceInfo('emulator-5556');
+
+        expect(info?.androidVersion, '16');
+        expect(info?.apiLevel, 36);
+        expect(info?.ramTotalBytes, 8388608 * 1024);
+        expect(info?.ramUsedBytes, 4194304 * 1024);
+        expect(info?.storageTotalBytes, 10485760 * 1024);
+        expect(info?.storageUsedBytes, 2097152 * 1024);
+        expect(
+          exec.calls,
+          everyElement(
+            predicate<FakeCommandCall>(
+              (call) => call.arguments.take(2).join(' ') == '-s emulator-5556',
+            ),
+          ),
+        );
+      },
+    );
+
+    test('returns null memory and storage when output cannot be parsed', () {
+      expect(AndroidDeviceService.parseMemoryInfo('invalid'), isNull);
+      expect(AndroidDeviceService.parseStorageInfo('invalid'), isNull);
     });
   });
 

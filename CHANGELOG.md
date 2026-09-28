@@ -7,12 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add Android network controls for Wi-Fi, mobile data, both, or neither.
+- Add Android navigation mode controls for gesture, 2-button, and 3-button navigation.
+- Add Android emulator language controls for English (US), Vietnamese, Japanese,
+  Chinese (Simplified), Korean, French, and Spanish.
+
+### Fixed
+
+- Apply Android navigation mode by enabling the matching SystemUI overlay.
+- Switch emulator ADB to root and wait for reconnect before changing system language.
+
 ## [0.9.0] - 2026-09-25
 
 ### Fixed
 
 - Open DeviceHub.app instead of Simulator.app when launching an iOS simulator on Xcode 27+. Older Xcode versions still open Simulator.app.
 - Keep booted iOS simulators out of the physical device list. `devicectl list devices` includes them on Xcode 27, filtered with `Reality = 'physical'`.
+
+## [0.8.2] - 2026-09-14
+
+### Added
+
+- Add inline Device Controls for running Android devices and iOS Simulators:
+  appearance, text size, and Android time zone.
+- Show Android version/API level, used/total RAM, and used/total
+  storage in the Details panel.
+
+### Fixed
+
+- Use `←/→` to switch device panels and reserve `Tab` for opening or leaving
+  device controls.
 
 ## [0.8.1] - 2026-07-21
 
