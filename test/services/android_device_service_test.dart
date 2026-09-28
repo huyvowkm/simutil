@@ -76,16 +76,18 @@ void main() {
       expect(svc.adbPath, overrideAdb);
     });
 
-    test('falls back to Linux SDK path when adb exists there', () {
+    test('falls back to the host SDK path when adb exists there', () {
+      final sdkHome = Platform.isLinux
+          ? '/home/test/Android/Sdk'
+          : '/home/test/Library/Android/sdk';
       final svc = AndroidDeviceService(
         FakeCommandExec((_, _) => null),
         environment: {'HOME': '/home/test'},
-        fileExists: (path) =>
-            path == '/home/test/Android/Sdk/platform-tools/adb',
+        fileExists: (path) => path == '$sdkHome/platform-tools/adb',
       );
 
-      expect(svc.getAndroidHome(), '/home/test/Android/Sdk');
-      expect(svc.adbPath, '/home/test/Android/Sdk/platform-tools/adb');
+      expect(svc.getAndroidHome(), sdkHome);
+      expect(svc.adbPath, '$sdkHome/platform-tools/adb');
     });
 
     test('falls back to adb on PATH when SDK adb is missing', () {

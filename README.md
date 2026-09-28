@@ -47,26 +47,27 @@ Simutil is written with [Nocterm](https://nocterm.dev/), a terminal UI framework
 
 ## Device Controls
 
-SimUtil có thêm mobile emulator/simulator control center. Màn hình phải luôn
-hiển thị **Details** ở 1/3 phía trên và **Controls** ở 2/3 phía dưới cho device
-đang chọn. Dùng `Tab` để chuyển focus sang Controls; không cần mở dialog bằng
-shortcut. Controls chỉ hoạt động với emulator/simulator hoặc Android device
-đang chạy; không tự boot device và không áp dụng cho iOS physical device.
+SimUtil includes a control center for mobile emulators and simulators. The screen
+always shows **Details** in the top third and **Controls** in the bottom two
+thirds for the selected device. Press `Tab` to move focus to Controls; there is
+no shortcut to open a dialog. Controls work only with a running emulator,
+simulator, or Android device. They do not boot devices and are not available for
+physical iOS devices.
 
-### Thiết lập giao diện để kiểm thử
+### Configure the device for testing
 
-| Tính năng | Android emulator | Android physical device | iOS Simulator | iOS physical device |
+| Feature | Android emulator | Android physical device | iOS Simulator | Physical iOS device |
 | --- | --- | --- | --- | --- |
-| Light / Dark appearance | Có | Có nếu ADB hỗ trợ | Có | Không hỗ trợ |
-| Font / text size | Có | Có nếu ADB hỗ trợ | Có (Dynamic Type) | Không hỗ trợ |
-| System time zone | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
-| Network (Wi-Fi / mobile data) | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
-| Navigation mode (gesture / 2-button / 3-button) | Có | Có nếu Android hỗ trợ | Không áp dụng | Không hỗ trợ |
-| System language | Có, cần `adb root` và Android sẽ khởi động lại | Chưa hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
-| Đọc giá trị hiện tại | Khi command hỗ trợ | Khi command hỗ trợ | Khi `simctl` hỗ trợ | Không hỗ trợ |
-| Báo lỗi command rõ ràng | Có | Có | Có | Không hỗ trợ |
+| Light / dark appearance | Supported | Supported when ADB allows it | Supported | Not supported |
+| Font / text size | Supported | Supported when ADB allows it | Supported (Dynamic Type) | Not supported |
+| System time zone | Supported | Supported when ADB allows it | Not supported yet | Not supported |
+| Network (Wi-Fi / mobile data) | Supported | Supported when ADB allows it | Not supported yet | Not supported |
+| Navigation mode (gesture / 2-button / 3-button) | Supported | Supported when Android allows it | Not applicable | Not supported |
+| System language | Supported; requires `adb root` and restarts Android | Not supported yet | Not supported yet | Not supported |
+| Read current value | When the command supports it | When the command supports it | When `simctl` supports it | Not supported |
+| Clear command error reporting | Supported | Supported | Supported | Not supported |
 
-Giao diện dự kiến vẫn hoàn toàn điều khiển bằng bàn phím:
+The interface is designed to be fully keyboard-driven:
 
 ```text
 ┌ Controls: Pixel 9 ─────────────────────────┐
@@ -79,55 +80,57 @@ Giao diện dự kiến vẫn hoàn toàn điều khiển bằng bàn phím:
 └────────────────────────────────────────────┘
 ```
 
-Các preset text size gồm Small, Normal, Large, Extra Large, Accessibility Large
-và Accessibility Extra Large. Giá trị hiển thị là platform-neutral; Android
-chuyển chúng thành `font_scale`, còn iOS chuyển thành `simctl content_size`.
-Navigation mode có Gesture, 2-button và 3-button. Android emulator có thể đổi
-system language sang English (US), Vietnamese, Japanese, Chinese (Simplified),
-Korean, French hoặc Spanish.
+Text size presets are Small, Normal, Large, Extra Large, Accessibility Large,
+and Accessibility Extra Large. The displayed values are platform-neutral;
+Android maps them to `font_scale`, while iOS maps them to `simctl content_size`.
+Navigation modes are Gesture, 2-button, and 3-button. Android emulators can
+change the system language to English (US), Vietnamese, Japanese, Simplified
+Chinese, Korean, French, or Spanish.
 
-### Hành vi và giới hạn kỹ thuật
+### Behavior and technical limits
 
-- Mỗi Android command luôn có `adb -s <serial>` để chỉ thay đổi device đang
-  chọn, kể cả khi nhiều emulator cùng chạy.
-- iOS command luôn có đúng Simulator UDID qua `xcrun simctl`.
-- Device lifecycle (discovery, launch, shutdown) vẫn do các service hiện có
-  quản lý. Device Controls là lớp service riêng, không làm phình `DeviceService`.
-- Mọi command chạy qua `CommandExec` và `IsolateRunner`; UI Nocterm không bị
-  block và service được unit-test bằng fake command executor.
-- Android time zone dùng danh sách timezone IANA phổ biến và chỉ thay đổi
-  device đang chọn. iOS system time zone chưa thuộc v1.
-- Android navigation mode bật SystemUI overlay tương ứng; Android versions hoặc
-  OEMs không có overlay đó sẽ không đổi được mode.
-- Đổi system language dùng locale BCP-47 trên Android emulator và khởi động lại
-  Android framework. Simutil chuyển ADB sang root trước khi đổi locale; Android
-  images không cho `adb root`, Android physical devices và iOS Simulators chưa
-  hỗ trợ tính năng này.
-- Nếu Xcode/runtime hoặc Android version không hỗ trợ một command, app phải
-  hiển thị lỗi ngắn gọn thay vì crash.
+- Every Android command includes `adb -s <serial>` so it affects only the
+  selected device, even when multiple emulators are running.
+- Every iOS command targets the specific Simulator UDID through `xcrun simctl`.
+- Existing services continue to manage device discovery, launch, and shutdown.
+  Device Controls has its own service layer and does not add control logic to
+  `DeviceService`.
+- Commands run through `CommandExec` and `IsolateRunner`, keeping the Nocterm UI
+  responsive. Services are unit-tested with a fake command executor.
+- Android time zones use a common set of IANA time zones and affect only the
+  selected device. Changing the iOS system time zone is outside v1.
+- Android navigation modes enable the corresponding SystemUI overlay. The mode
+  cannot be changed on Android versions or OEM builds without that overlay.
+- Changing the system language uses a BCP-47 locale on Android emulators and
+  restarts the Android framework. SimUtil switches ADB to root before changing
+  the locale. Android images that do not allow `adb root`, physical Android
+  devices, and iOS simulators do not support this feature.
+- If an Xcode/runtime or Android version does not support a command, the app
+  should show a concise error instead of crashing.
 
-### Roadmap sau v1
+### Roadmap after v1
 
-- Orientation, display density/resolution, animation scale và stay-awake.
-- Permissions, location, screenshot, deep link, status-bar override và push
+- Orientation, display density/resolution, animation scale, and stay-awake.
+- Permissions, location, screenshots, deep links, status-bar overrides, and push
   notification testing.
-- App Controls: chọn package/bundle ID, terminate/relaunch, clear app data và
-  app-specific language/locale.
-- Presets như `Dark Mode`, `Large Text`, `Japanese` hoặc `Dark + Accessibility`.
-- Các action phá huỷ như erase/wipe sẽ ở PR riêng, hiển thị target rõ ràng và
-  luôn yêu cầu confirmation.
+- App Controls: select a package/bundle ID, terminate/relaunch the app, clear
+  app data, and set an app-specific language/locale.
+- Presets such as `Dark Mode`, `Large Text`, `Japanese`, or
+  `Dark + Accessibility`.
+- Destructive actions such as erase/wipe will be handled in a separate PR, show
+  the target clearly, and always require confirmation.
 
-### Cách triển khai
+### Implementation approach
 
-1. Models biểu diễn appearance, text size, trạng thái và kết quả control.
-2. `DeviceControlService`, Android/iOS implementations và `CommandExec` hiện
-   có để chạy commands ngoài UI isolate.
-3. Service registration tại `ServiceLocator`; widget không tự khởi tạo service.
-4. Inline `DeviceControlsPanel` tại `SimutilApp`, focus bằng `Tab`.
-5. Unit tests kiểm tra command generation, failure handling và target khi có
-   nhiều device cùng chạy.
+1. Models represent appearance, text size, control state, and results.
+2. `DeviceControlService`, its Android/iOS implementations, and `CommandExec`
+   run commands outside the UI isolate.
+3. Services are registered in `ServiceLocator`; widgets do not create services.
+4. `SimutilApp` includes an inline `DeviceControlsPanel`, focused with `Tab`.
+5. Unit tests cover command generation, failure handling, and targeting when
+   multiple devices are running.
 
-Chi tiết kỹ thuật và checklist triển khai nằm trong
+Technical details and the implementation checklist are in the
 [Device Controls implementation plan](docs/device-controls-plan.md).
 
 ## Custom Plugins
