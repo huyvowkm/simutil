@@ -2,6 +2,7 @@ import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
 import 'package:simutil/models/device_control_result.dart';
 import 'package:simutil/models/device_control_state.dart';
+import 'package:simutil/models/device_navigation_mode.dart';
 import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_text_size.dart';
 
@@ -11,6 +12,10 @@ abstract interface class DeviceControlService {
   bool get supportsTimeZone;
 
   bool get supportsNetwork;
+
+  bool get supportsNavigationMode;
+
+  bool supportsLanguage(Device device);
 
   Future<DeviceControlState> getState(Device device);
 
@@ -27,4 +32,11 @@ abstract interface class DeviceControlService {
     Device device,
     DeviceNetworkMode mode,
   );
+
+  Future<DeviceControlResult> setNavigationMode(
+    Device device,
+    DeviceNavigationMode mode,
+  );
+
+  Future<DeviceControlResult> setLanguage(Device device, String locale);
 }

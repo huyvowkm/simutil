@@ -2,9 +2,12 @@ import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
 import 'package:simutil/models/device_control_result.dart';
 import 'package:simutil/models/device_control_state.dart';
+import 'package:simutil/models/device_language.dart';
+import 'package:simutil/models/device_navigation_mode.dart';
 import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/device_text_size.dart';
+import 'package:simutil/models/device_type.dart';
 import 'package:simutil/services/android_device_service.dart';
 import 'package:simutil/services/command_exec.dart';
 import 'package:simutil/services/device_control_service.dart';
@@ -35,6 +38,15 @@ class AndroidDeviceControlService implements DeviceControlService {
   bool get supportsNetwork => true;
 
   @override
+  bool get supportsNavigationMode => true;
+
+  @override
+  bool supportsLanguage(Device device) =>
+      device.os == DeviceOs.android &&
+      device.type == DeviceType.simulator &&
+      device.isRunning;
+
+  @override
   Future<DeviceControlState> getState(Device device) async {
     if (!supports(device)) return const DeviceControlState();
 
@@ -43,12 +55,19 @@ class AndroidDeviceControlService implements DeviceControlService {
       _readTextSize(device),
       _readTimeZone(device),
       _readNetworkMode(device),
+      _readNavigationMode(device),
+      if (supportsLanguage(device))
+        _readLanguage(device)
+      else
+        Future.value(null),
     ]);
     return DeviceControlState(
       appearance: results[0] as DeviceAppearance?,
       textSize: results[1] as DeviceTextSize?,
       timeZone: results[2] as String?,
       networkMode: results[3] as DeviceNetworkMode?,
+      navigationMode: results[4] as DeviceNavigationMode?,
+      language: results[5] as String?,
     );
   }
 
@@ -110,6 +129,45 @@ class AndroidDeviceControlService implements DeviceControlService {
     ], successMessage: 'Network set to ${mode.label}');
   }
 
+  @override
+  Future<DeviceControlResult> setNavigationMode(
+    Device device,
+    DeviceNavigationMode mode,
+  ) => _run(device, [
+    'shell',
+    'settings',
+    'put',
+    'secure',
+    'navigation_mode',
+    mode.settingValue,
+  ], successMessage: 'Navigation mode set to ${mode.label}');
+
+  @override
+  Future<DeviceControlResult> setLanguage(Device device, String locale) async {
+    if (!supportsLanguage(device)) {
+      return const DeviceControlResult.failure(
+        'Language control requires a running Android emulator.',
+      );
+    }
+    final language = DeviceLanguage.fromLocale(locale);
+    if (language == null) {
+      return const DeviceControlResult.failure('Unsupported device language.');
+    }
+    final result = await _tryAdb(device, [
+      'shell',
+      'setprop',
+      'persist.sys.locale',
+      language.locale,
+      ';stop;sleep 5;start',
+    ]);
+    if (result?.success ?? false) {
+      return DeviceControlResult.success(
+        'Language set to ${language.label}; Android is restarting.',
+      );
+    }
+    return DeviceControlResult.failure(_failureMessage(result));
+  }
+
   Future<DeviceAppearance?> _readAppearance(Device device) async {
     final result = await _tryAdb(device, ['shell', 'cmd', 'uimode', 'night']);
     if (result == null || !result.success) return null;
@@ -158,6 +216,28 @@ class AndroidDeviceControlService implements DeviceControlService {
       (false, true) => DeviceNetworkMode.mobileData,
       (false, false) => DeviceNetworkMode.none,
     };
+  }
+
+  Future<DeviceNavigationMode?> _readNavigationMode(Device device) async {
+    final result = await _tryAdb(device, [
+      'shell',
+      'settings',
+      'get',
+      'secure',
+      'navigation_mode',
+    ]);
+    if (result == null || !result.success) return null;
+    return DeviceNavigationMode.fromSettingValue(result.stdout.trim());
+  }
+
+  Future<String?> _readLanguage(Device device) async {
+    final result = await _tryAdb(device, [
+      'shell',
+      'getprop',
+      'persist.sys.locale',
+    ]);
+    final locale = result?.stdout.trim();
+    return locale == null || locale.isEmpty ? null : locale;
   }
 
   Future<DeviceControlResult> _run(
