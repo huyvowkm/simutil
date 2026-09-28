@@ -1,15 +1,10 @@
 enum DeviceNavigationMode {
-  gesture('Gesture', '2'),
-  twoButton('2-button', '1'),
-  threeButton('3-button', '0');
+  gesture('Gesture', 'com.android.internal.systemui.navbar.gestural'),
+  twoButton('2-button', 'com.android.internal.systemui.navbar.twobutton'),
+  threeButton('3-button', 'com.android.internal.systemui.navbar.threebutton');
 
-  const DeviceNavigationMode(this.label, this.settingValue);
+  const DeviceNavigationMode(this.label, this.overlayPackage);
 
   final String label;
-  final String settingValue;
-
-  static DeviceNavigationMode? fromSettingValue(String value) =>
-      DeviceNavigationMode.values
-          .where((mode) => mode.settingValue == value)
-          .firstOrNull;
+  final String overlayPackage;
 }
