@@ -61,6 +61,8 @@ shortcut. Controls chỉ hoạt động với emulator/simulator hoặc Android 
 | Font / text size | Có | Có nếu ADB hỗ trợ | Có (Dynamic Type) | Không hỗ trợ |
 | System time zone | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
 | Network (Wi-Fi / mobile data) | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
+| Navigation mode (gesture / 2-button / 3-button) | Có | Có nếu Android hỗ trợ | Không áp dụng | Không hỗ trợ |
+| System language | Có, Android sẽ khởi động lại | Chưa hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
 | Đọc giá trị hiện tại | Khi command hỗ trợ | Khi command hỗ trợ | Khi `simctl` hỗ trợ | Không hỗ trợ |
 | Báo lỗi command rõ ràng | Có | Có | Có | Không hỗ trợ |
 
@@ -72,12 +74,17 @@ Giao diện dự kiến vẫn hoàn toàn điều khiển bằng bàn phím:
 │ Text Size                       Extra Large │
 │ Time Zone             Asia/Ho_Chi_Minh     │
 │ Network                              Both  │
+│ Navigation                       Gesture  │
+│ Language                    Vietnamese     │
 └────────────────────────────────────────────┘
 ```
 
 Các preset text size gồm Small, Normal, Large, Extra Large, Accessibility Large
 và Accessibility Extra Large. Giá trị hiển thị là platform-neutral; Android
 chuyển chúng thành `font_scale`, còn iOS chuyển thành `simctl content_size`.
+Navigation mode có Gesture, 2-button và 3-button. Android emulator có thể đổi
+system language sang English (US), Vietnamese, Japanese, Chinese (Simplified),
+Korean, French hoặc Spanish.
 
 ### Hành vi và giới hạn kỹ thuật
 
@@ -90,6 +97,11 @@ chuyển chúng thành `font_scale`, còn iOS chuyển thành `simctl content_si
   block và service được unit-test bằng fake command executor.
 - Android time zone dùng danh sách timezone IANA phổ biến và chỉ thay đổi
   device đang chọn. iOS system time zone chưa thuộc v1.
+- Android navigation mode dùng secure setting `navigation_mode`; Android
+  versions hoặc OEMs không hỗ trợ setting này có thể không đổi được mode.
+- Đổi system language dùng locale BCP-47 trên Android emulator và khởi động lại
+  Android framework. Android physical device và iOS Simulator chưa hỗ trợ tính
+  năng này.
 - Nếu Xcode/runtime hoặc Android version không hỗ trợ một command, app phải
   hiển thị lỗi ngắn gọn thay vì crash.
 

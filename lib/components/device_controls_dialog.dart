@@ -5,6 +5,9 @@ import 'package:simutil/components/simutil_icons.dart';
 import 'package:simutil/components/simutil_theme.dart';
 import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
+import 'package:simutil/models/device_control_result.dart';
+import 'package:simutil/models/device_language.dart';
+import 'package:simutil/models/device_navigation_mode.dart';
 import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_text_size.dart';
 import 'package:simutil/services/device_control_service.dart';
@@ -34,6 +37,8 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
     'Asia/Tokyo',
   ];
   static const _networkModes = DeviceNetworkMode.values;
+  static const _navigationModes = DeviceNavigationMode.values;
+  static const _languages = DeviceLanguage.values;
 
   int _selectedIndex = 0;
   bool _isLoading = true;
@@ -42,12 +47,25 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
   DeviceTextSize? _textSize;
   String? _timeZone;
   DeviceNetworkMode? _networkMode;
+  DeviceNavigationMode? _navigationMode;
+  DeviceLanguage? _language;
+  String? _languageCode;
   String? _message;
 
   int get _rowCount =>
       2 +
       (component.service.supportsTimeZone ? 1 : 0) +
-      (component.service.supportsNetwork ? 1 : 0);
+      (component.service.supportsNetwork ? 1 : 0) +
+      (component.service.supportsNavigationMode ? 1 : 0) +
+      (component.service.supportsLanguage(component.device) ? 1 : 0);
+
+  int get _networkIndex => 2 + (component.service.supportsTimeZone ? 1 : 0);
+
+  int get _navigationModeIndex =>
+      _networkIndex + (component.service.supportsNetwork ? 1 : 0);
+
+  int get _languageIndex =>
+      _navigationModeIndex + (component.service.supportsNavigationMode ? 1 : 0);
 
   @override
   void initState() {
@@ -65,6 +83,9 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
       _textSize = null;
       _timeZone = null;
       _networkMode = null;
+      _navigationMode = null;
+      _language = null;
+      _languageCode = null;
       _message = null;
     });
     unawaited(_loadState());
@@ -78,6 +99,9 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
       _textSize = state.textSize;
       _timeZone = state.timeZone;
       _networkMode = state.networkMode;
+      _navigationMode = state.navigationMode;
+      _languageCode = state.language;
+      _language = DeviceLanguage.fromLocale(state.language ?? '');
       _isLoading = false;
     });
   }
@@ -85,6 +109,7 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
   @override
   Component build(BuildContext context) {
     final st = context.simutilTheme;
+    var rowIndex = 0;
     final content = Padding(
       padding: EdgeInsets.all(1),
       child: Focusable(
@@ -94,12 +119,29 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _row(st, 0, 'Appearance', _appearance?.label ?? 'Unknown'),
-            _row(st, 1, 'Text Size', _textSize?.label ?? 'Unknown'),
+            _row(st, rowIndex++, 'Appearance', _appearance?.label ?? 'Unknown'),
+            _row(st, rowIndex++, 'Text Size', _textSize?.label ?? 'Unknown'),
             if (component.service.supportsTimeZone)
-              _row(st, 2, 'Time Zone', _timeZone ?? 'Unknown'),
+              _row(st, rowIndex++, 'Time Zone', _timeZone ?? 'Unknown'),
             if (component.service.supportsNetwork)
-              _row(st, 3, 'Network', _networkMode?.label ?? 'Unknown'),
+              _row(st, rowIndex++, 'Network', _networkMode?.label ?? 'Unknown'),
+            if (component.service.supportsNavigationMode)
+              _row(
+                st,
+                rowIndex++,
+                'Navigation',
+                _navigationMode?.label ?? 'Unknown',
+              ),
+            if (component.service.supportsLanguage(component.device))
+              _row(
+                st,
+                rowIndex++,
+                'Language',
+                _language?.label ?? _languageCode ?? 'Unknown',
+              ),
+            if (component.service.supportsLanguage(component.device) &&
+                _selectedIndex == _languageIndex)
+              Text(' Changing language restarts Android.', style: st.dimmed),
             if (_message != null) ...[
               SizedBox(height: 1),
               Text(' $_message', style: st.dimmed),
@@ -161,15 +203,22 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
 
   void _cycleValue(int offset) {
     setState(() {
-      switch (_selectedIndex) {
-        case 0:
-          _appearance = _cycle(DeviceAppearance.values, _appearance, offset);
-        case 1:
-          _textSize = _cycle(DeviceTextSize.values, _textSize, offset);
-        case 2:
-          _timeZone = _cycle(_timeZones, _timeZone, offset);
-        case 3:
-          _networkMode = _cycle(_networkModes, _networkMode, offset);
+      if (_selectedIndex == 0) {
+        _appearance = _cycle(DeviceAppearance.values, _appearance, offset);
+      } else if (_selectedIndex == 1) {
+        _textSize = _cycle(DeviceTextSize.values, _textSize, offset);
+      } else if (component.service.supportsTimeZone && _selectedIndex == 2) {
+        _timeZone = _cycle(_timeZones, _timeZone, offset);
+      } else if (component.service.supportsNetwork &&
+          _selectedIndex == _networkIndex) {
+        _networkMode = _cycle(_networkModes, _networkMode, offset);
+      } else if (component.service.supportsNavigationMode &&
+          _selectedIndex == _navigationModeIndex) {
+        _navigationMode = _cycle(_navigationModes, _navigationMode, offset);
+      } else if (component.service.supportsLanguage(component.device) &&
+          _selectedIndex == _languageIndex) {
+        _language = _cycle(_languages, _language, offset);
+        _languageCode = _language?.locale;
       }
     });
   }
@@ -184,24 +233,41 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
       _isApplying = true;
       _message = null;
     });
-    final result = switch (_selectedIndex) {
-      0 => await component.service.setAppearance(
-        component.device,
+    final service = component.service;
+    final device = component.device;
+    late final DeviceControlResult result;
+    if (_selectedIndex == 0) {
+      result = await service.setAppearance(
+        device,
         _appearance ?? DeviceAppearance.light,
-      ),
-      1 => await component.service.setTextSize(
-        component.device,
+      );
+    } else if (_selectedIndex == 1) {
+      result = await service.setTextSize(
+        device,
         _textSize ?? DeviceTextSize.normal,
-      ),
-      2 => await component.service.setTimeZone(
-        component.device,
-        _timeZone ?? _timeZones.first,
-      ),
-      _ => await component.service.setNetworkMode(
-        component.device,
+      );
+    } else if (service.supportsTimeZone && _selectedIndex == 2) {
+      result = await service.setTimeZone(device, _timeZone ?? _timeZones.first);
+    } else if (service.supportsNetwork && _selectedIndex == _networkIndex) {
+      result = await service.setNetworkMode(
+        device,
         _networkMode ?? DeviceNetworkMode.both,
-      ),
-    };
+      );
+    } else if (service.supportsNavigationMode &&
+        _selectedIndex == _navigationModeIndex) {
+      result = await service.setNavigationMode(
+        device,
+        _navigationMode ?? DeviceNavigationMode.gesture,
+      );
+    } else if (service.supportsLanguage(device) &&
+        _selectedIndex == _languageIndex) {
+      result = await service.setLanguage(
+        device,
+        _language?.locale ?? _languages.first.locale,
+      );
+    } else {
+      result = const DeviceControlResult.failure('Unknown device control.');
+    }
     if (!mounted) return;
     setState(() {
       _isApplying = false;

@@ -1,0 +1,6 @@
+- [x] Inspect repository instructions and existing device controls.
+- [x] Move `codex-multi-agent-setup-plan.md` into the Codex root.
+- [x] Add Android navigation and emulator language controls.
+- [x] Update v0.8.3 version, changelog, and README.
+- [x] Run formatter, build version generation, static analysis, and diff check.
+- [x] Finish final diff review and reconcile task status.

@@ -4,6 +4,7 @@ import 'package:simutil/models/device.dart';
 import 'package:simutil/models/device_appearance.dart';
 import 'package:simutil/models/device_control_result.dart';
 import 'package:simutil/models/device_control_state.dart';
+import 'package:simutil/models/device_navigation_mode.dart';
 import 'package:simutil/models/device_network_mode.dart';
 import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/device_text_size.dart';
@@ -40,6 +41,12 @@ class IOSDeviceControlService implements DeviceControlService {
 
   @override
   bool get supportsNetwork => false;
+
+  @override
+  bool get supportsNavigationMode => false;
+
+  @override
+  bool supportsLanguage(Device device) => false;
 
   @override
   Future<DeviceControlState> getState(Device device) async {
@@ -85,6 +92,20 @@ class IOSDeviceControlService implements DeviceControlService {
   ) async => const DeviceControlResult.failure(
     'Network controls are not available for iOS simulators.',
   );
+
+  @override
+  Future<DeviceControlResult> setNavigationMode(
+    Device device,
+    DeviceNavigationMode mode,
+  ) async => const DeviceControlResult.failure(
+    'Navigation mode is not available for iOS simulators.',
+  );
+
+  @override
+  Future<DeviceControlResult> setLanguage(Device device, String locale) async =>
+      const DeviceControlResult.failure(
+        'Language control is not available for iOS simulators.',
+      );
 
   Future<DeviceAppearance?> _readAppearance(Device device) async {
     final result = await _trySimctl(device, ['ui', device.id, 'appearance']);
