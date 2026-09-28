@@ -62,7 +62,7 @@ shortcut. Controls chỉ hoạt động với emulator/simulator hoặc Android 
 | System time zone | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
 | Network (Wi-Fi / mobile data) | Có | Có nếu ADB hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
 | Navigation mode (gesture / 2-button / 3-button) | Có | Có nếu Android hỗ trợ | Không áp dụng | Không hỗ trợ |
-| System language | Có, Android sẽ khởi động lại | Chưa hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
+| System language | Có, cần `adb root` và Android sẽ khởi động lại | Chưa hỗ trợ | Chưa hỗ trợ | Không hỗ trợ |
 | Đọc giá trị hiện tại | Khi command hỗ trợ | Khi command hỗ trợ | Khi `simctl` hỗ trợ | Không hỗ trợ |
 | Báo lỗi command rõ ràng | Có | Có | Có | Không hỗ trợ |
 
@@ -97,11 +97,12 @@ Korean, French hoặc Spanish.
   block và service được unit-test bằng fake command executor.
 - Android time zone dùng danh sách timezone IANA phổ biến và chỉ thay đổi
   device đang chọn. iOS system time zone chưa thuộc v1.
-- Android navigation mode dùng secure setting `navigation_mode`; Android
-  versions hoặc OEMs không hỗ trợ setting này có thể không đổi được mode.
+- Android navigation mode bật SystemUI overlay tương ứng; Android versions hoặc
+  OEMs không có overlay đó sẽ không đổi được mode.
 - Đổi system language dùng locale BCP-47 trên Android emulator và khởi động lại
-  Android framework. Android physical device và iOS Simulator chưa hỗ trợ tính
-  năng này.
+  Android framework. Simutil chuyển ADB sang root trước khi đổi locale; Android
+  images không cho `adb root`, Android physical devices và iOS Simulators chưa
+  hỗ trợ tính năng này.
 - Nếu Xcode/runtime hoặc Android version không hỗ trợ một command, app phải
   hiển thị lỗi ngắn gọn thay vì crash.
 

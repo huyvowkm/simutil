@@ -3,4 +3,6 @@
 - [x] Add Android navigation and emulator language controls.
 - [x] Update v0.8.3 version, changelog, and README.
 - [x] Run formatter, build version generation, static analysis, and diff check.
-- [x] Finish final diff review and reconcile task status.
+- [x] Fix locale changes requiring root and navigation overlay application.
+- [x] Run static analysis and review the diff.
+- [x] Push the follow-up to `main` for emulator retest.

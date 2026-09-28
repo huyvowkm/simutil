@@ -141,7 +141,10 @@ class _DeviceControlsPanelState extends State<DeviceControlsPanel> {
               ),
             if (component.service.supportsLanguage(component.device) &&
                 _selectedIndex == _languageIndex)
-              Text(' Changing language restarts Android.', style: st.dimmed),
+              Text(
+                ' Changing language restarts Android and requires adb root.',
+                style: st.dimmed,
+              ),
             if (_message != null) ...[
               SizedBox(height: 1),
               Text(' $_message', style: st.dimmed),

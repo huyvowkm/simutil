@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add Android emulator language controls for English (US), Vietnamese, Japanese,
   Chinese (Simplified), Korean, French, and Spanish.
 
+### Fixed
+
+- Apply Android navigation mode by enabling the matching SystemUI overlay.
+- Switch emulator ADB to root and wait for reconnect before changing system language.
+
 ## [0.9.0] - 2026-09-25
 
 ### Fixed

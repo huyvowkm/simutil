@@ -135,11 +135,11 @@ class AndroidDeviceControlService implements DeviceControlService {
     DeviceNavigationMode mode,
   ) => _run(device, [
     'shell',
-    'settings',
-    'put',
-    'secure',
-    'navigation_mode',
-    mode.settingValue,
+    'cmd',
+    'overlay',
+    'enable-exclusive',
+    '--category',
+    mode.overlayPackage,
   ], successMessage: 'Navigation mode set to ${mode.label}');
 
   @override
@@ -152,6 +152,27 @@ class AndroidDeviceControlService implements DeviceControlService {
     final language = DeviceLanguage.fromLocale(locale);
     if (language == null) {
       return const DeviceControlResult.failure('Unsupported device language.');
+    }
+    final rootResult = await _tryAdb(device, ['root']);
+    final rootOutput = '${rootResult?.stdout} ${rootResult?.stderr}'
+        .toLowerCase();
+    if (!(rootResult?.success ?? false) ||
+        rootOutput.contains('cannot run as root') ||
+        rootOutput.contains('not allowed')) {
+      final failure = _failureMessage(rootResult);
+      return DeviceControlResult.failure(
+        failure == 'Unable to update Android device controls.'
+            ? 'This emulator does not allow adb root.'
+            : failure,
+      );
+    }
+    final waitResult = await _tryAdb(device, [
+      'wait-for-device',
+    ], timeout: const Duration(seconds: 30));
+    if (!(waitResult?.success ?? false)) {
+      return const DeviceControlResult.failure(
+        'Unable to reconnect to the Android emulator after adb root.',
+      );
     }
     final result = await _tryAdb(device, [
       'shell',
@@ -219,15 +240,16 @@ class AndroidDeviceControlService implements DeviceControlService {
   }
 
   Future<DeviceNavigationMode?> _readNavigationMode(Device device) async {
-    final result = await _tryAdb(device, [
-      'shell',
-      'settings',
-      'get',
-      'secure',
-      'navigation_mode',
-    ]);
+    final result = await _tryAdb(device, ['shell', 'cmd', 'overlay', 'list']);
     if (result == null || !result.success) return null;
-    return DeviceNavigationMode.fromSettingValue(result.stdout.trim());
+    final enabledOverlays = result.stdout
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.startsWith('[x] '));
+    for (final mode in DeviceNavigationMode.values) {
+      if (enabledOverlays.contains('[x] ${mode.overlayPackage}')) return mode;
+    }
+    return null;
   }
 
   Future<String?> _readLanguage(Device device) async {
@@ -276,11 +298,16 @@ class AndroidDeviceControlService implements DeviceControlService {
     return DeviceControlResult.success(successMessage);
   }
 
-  Future<CommandResult?> _tryAdb(Device device, List<String> arguments) async {
+  Future<CommandResult?> _tryAdb(
+    Device device,
+    List<String> arguments, {
+    Duration? timeout,
+  }) async {
     try {
       return await _exec.run(
         _deviceService.adbPath,
         arguments: ['-s', device.id, ...arguments],
+        timeout: timeout,
       );
     } catch (error) {
       return null;
