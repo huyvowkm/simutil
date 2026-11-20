@@ -13,4 +13,6 @@ abstract class DeviceService {
   });
 
   Future<bool> shutdownSimulator({required String deviceId});
+
+  Future<bool> deleteSimulator({required Device device});
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:simutil/models/device.dart';
+import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/device_state.dart';
 import 'package:simutil/models/device_type.dart';
 import 'package:simutil/services/command_exec.dart';
@@ -187,6 +188,27 @@ class IOSDeviceService implements DeviceService {
       final result = await _exec.run(
         'xcrun',
         arguments: ['simctl', 'shutdown', deviceId],
+      );
+      return result.success;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> deleteSimulator({required Device device}) async {
+    if (!Platform.isMacOS ||
+        device.os != DeviceOs.ios ||
+        !device.type.isSimulator ||
+        device.isRunning ||
+        device.id.isEmpty) {
+      return false;
+    }
+
+    try {
+      final result = await _exec.run(
+        'xcrun',
+        arguments: ['simctl', 'delete', device.id],
       );
       return result.success;
     } catch (_) {

@@ -7,13 +7,6 @@ class AppStatusBar extends StatelessComponent {
 
   @override
   Component build(BuildContext context) {
-    return SizedBox(
-      height: 1,
-      child: Row(
-        children: [
-          Expanded(child: Text(' $message')),
-        ],
-      ),
-    );
+    return Row(children: [Expanded(child: Text(' $message', softWrap: true))]);
   }
 }

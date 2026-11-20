@@ -36,6 +36,7 @@ Simutil is written with [Nocterm](https://nocterm.dev/), a terminal UI framework
 - **One-Key Launch** — Start any device with `Enter`, no need to open Android Studio or Xcode
 - **Android Launch Options** — Provide launch option for Android Emulators: Normal, Cold Boot, No Audio, or Cold Boot + No Audio,...
 - **Shutdown device** — Shutdown simulators/emulators.
+- **Delete virtual devices** — Permanently delete stopped Android emulators or iOS simulators with confirmation (`d`).
 - **Logcat** — View logcat output of Android emulators / devices, support filtering.
 - **ADB Tools Built-in** — Connect to physical Android devices wirelessly:
   - Connect via IP address
