@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:simutil/models/adb_connect_result.dart';
 import 'package:simutil/models/android_device_info.dart';
 import 'package:simutil/models/device.dart';
@@ -23,6 +24,7 @@ class AndroidDeviceService implements DeviceService {
 
   static const Duration _deviceListTimeout = Duration(seconds: 15);
   static final RegExp _physicalDeviceIdPattern = RegExp(r'^[A-Za-z0-9._:-]+$');
+  static final RegExp _safeWindowsAvdName = RegExp(r'^[A-Za-z0-9_. -]+$');
 
   final CommandExec _exec;
   final String? _androidHomeOverride;
@@ -58,6 +60,34 @@ class AndroidDeviceService implements DeviceService {
   }
 
   String get emulatorPath => '${getAndroidHome()}/emulator/emulator';
+
+  String get avdManagerPath {
+    final executable = Platform.isWindows ? 'avdmanager.bat' : 'avdmanager';
+    final commandLineToolsPath = p.join(getAndroidHome(), 'cmdline-tools');
+    final candidates = <String>[
+      p.join(commandLineToolsPath, 'latest', 'bin', executable),
+      ..._versionedAvdManagerPaths(commandLineToolsPath, executable),
+      p.join(getAndroidHome(), 'tools', 'bin', executable),
+      executable,
+    ];
+    return candidates.firstWhere(_pathExists, orElse: () => executable);
+  }
+
+  List<String> _versionedAvdManagerPaths(
+    String commandLineToolsPath,
+    String executable,
+  ) {
+    try {
+      return Directory(commandLineToolsPath)
+          .listSync(followLinks: false)
+          .whereType<Directory>()
+          .map((directory) => p.join(directory.path, 'bin', executable))
+          .where(_pathExists)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
 
   @override
   Future<bool> isAvailable() async {
@@ -434,6 +464,27 @@ class AndroidDeviceService implements DeviceService {
       );
       return result.success;
     } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> deleteSimulator({required Device device}) async {
+    if (device.os != DeviceOs.android ||
+        !device.type.isSimulator ||
+        device.isRunning ||
+        device.name.isEmpty ||
+        (Platform.isWindows && !_safeWindowsAvdName.hasMatch(device.name))) {
+      return false;
+    }
+
+    try {
+      final result = await _exec.run(
+        avdManagerPath,
+        arguments: ['delete', 'avd', '-n', device.name],
+      );
+      return result.success;
+    } catch (_) {
       return false;
     }
   }

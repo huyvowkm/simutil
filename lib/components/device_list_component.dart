@@ -15,6 +15,7 @@ class DeviceListComponent extends StatefulComponent {
     this.onDeviceLaunchRequested,
     this.onDeviceShowOptions,
     this.onDeviceShutdownRequested,
+    this.onDeviceDeleteRequested,
     this.onDeviceLogcatRequested,
     this.isLoading = false,
     this.loadingMessage = 'Loading devices...',
@@ -29,6 +30,7 @@ class DeviceListComponent extends StatefulComponent {
   final void Function(Device)? onDeviceLaunchRequested;
   final void Function(Device)? onDeviceShowOptions;
   final void Function(Device)? onDeviceShutdownRequested;
+  final void Function(Device)? onDeviceDeleteRequested;
   final void Function(Device)? onDeviceLogcatRequested;
   final bool isLoading;
   final String loadingMessage;
@@ -108,6 +110,8 @@ class _DeviceListComponentState extends State<DeviceListComponent> {
       case LogicalKey.keyT:
         _handleShutdown();
         return true;
+      case LogicalKey.keyD:
+        return _handleDelete();
       case LogicalKey.keyL:
         _handleLogcat();
         return true;
@@ -164,6 +168,17 @@ class _DeviceListComponentState extends State<DeviceListComponent> {
         component.devices[component.selectedIndex],
       );
     }
+  }
+
+  bool _handleDelete() {
+    if (component.selectedIndex >= component.devices.length) return false;
+    final device = component.devices[component.selectedIndex];
+    final onDelete = component.onDeviceDeleteRequested;
+    if (device.isRunning || !device.type.isSimulator || onDelete == null) {
+      return false;
+    }
+    onDelete(device);
+    return true;
   }
 
   void _handleLogcat() {

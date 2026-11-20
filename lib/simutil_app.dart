@@ -21,6 +21,7 @@ import 'package:simutil/models/android_device_info.dart';
 import 'package:simutil/models/android_quick_launch_option.dart';
 import 'package:simutil/models/app_settings.dart';
 import 'package:simutil/models/device.dart';
+import 'package:simutil/models/device_type.dart';
 import 'package:simutil/services/device_control_service.dart';
 import 'package:simutil/models/device_os.dart';
 import 'package:simutil/models/plugin_config.dart';
@@ -289,6 +290,7 @@ class _SimutilAppState extends State<SimutilApp> {
     return _joinStatusHints([
       'Launch: <space> or <enter>',
       if (device.isRunning) 'Shutdown: t',
+      if (!device.isRunning) 'Delete: d',
       'Plugins: p',
       'Edit config: e',
       'ADB Tools: n',
@@ -327,6 +329,7 @@ class _SimutilAppState extends State<SimutilApp> {
       'Launch: <space>',
       'Launch with option: <enter>',
       if (device.isRunning) 'Shutdown: t',
+      if (!device.isRunning) 'Delete: d',
       if (device.isRunning) 'Logcat: l',
       'Plugins: p',
       'Edit config: e',
@@ -710,6 +713,45 @@ class _SimutilAppState extends State<SimutilApp> {
     }
   }
 
+  Future<void> _onDeviceDeleteRequested(Device device) async {
+    if (device.type != DeviceType.simulator || device.isRunning) return;
+
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: 'Delete Virtual Device',
+      message:
+          'Permanently delete ${device.name} and all its local data?'
+          '\nThis cannot be undone.',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _statusMessage = 'Deleting ${device.name}…');
+    final deletion = switch (device.os) {
+      DeviceOs.android => _di.adbService.deleteSimulator(device: device),
+      DeviceOs.ios => _di.simctlService.deleteSimulator(device: device),
+    };
+    final success = await deletion;
+    if (!mounted) return;
+
+    if (!success) {
+      await showErrorDialog(
+        context,
+        title: 'Delete Failed',
+        message:
+            'Could not delete ${device.name}. Check the SDK or Xcode tools.',
+      );
+      if (mounted) {
+        setState(() => _statusMessage = _buildIdleStatusMessage());
+      }
+      return;
+    }
+
+    await _refreshDevices();
+    if (mounted) {
+      setState(() => _statusMessage = _buildIdleStatusMessage());
+    }
+  }
+
   Future<void> _onDeviceLogcatRequested(Device device) async {
     await showLogcatDialog(
       context: context,
@@ -929,6 +971,7 @@ class _SimutilAppState extends State<SimutilApp> {
         onDeviceLaunchRequested: _onDeviceDefaultLaunch,
         onDeviceShowOptions: _onDeviceShowOptions,
         onDeviceLogcatRequested: _onDeviceLogcatRequested,
+        onDeviceDeleteRequested: _onDeviceDeleteRequested,
       ),
     );
   }
@@ -970,6 +1013,7 @@ class _SimutilAppState extends State<SimutilApp> {
         onDeviceLaunchRequested: _onDeviceDefaultLaunch,
         onDeviceShowOptions: _onDeviceShowOptions,
         onDeviceShutdownRequested: _onDeviceShutdownRequested,
+        onDeviceDeleteRequested: _onDeviceDeleteRequested,
       ),
     );
   }
