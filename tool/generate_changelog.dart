@@ -39,8 +39,14 @@ List<ParsedChangelogEntry> parseChangelog(String content) {
     }
 
     final bullet = _bulletLine.firstMatch(line);
-    if (version != null && bullet != null) {
+    if (version == null) continue;
+
+    if (bullet != null) {
       items.add(bullet.group(1)!);
+    } else if (items.isNotEmpty &&
+        line.startsWith('  ') &&
+        line.trim().isNotEmpty) {
+      items[items.length - 1] = '${items.last} ${line.trim()}';
     }
   }
   addCurrentEntry();
